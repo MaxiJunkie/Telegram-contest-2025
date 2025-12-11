@@ -87,6 +87,7 @@ public final class TabBarComponent: Component {
         
         private var component: TabBarComponent?
         private weak var state: EmptyComponentState?
+        private var liquidGlassTabBarOverlay: LiquidGlassTabBarOverlay?
         
         public override init(frame: CGRect) {
             self.backgroundView = GlassBackgroundView()
@@ -95,42 +96,7 @@ public final class TabBarComponent: Component {
             self.contextGestureContainerView = ContextControllerSourceView()
             self.contextGestureContainerView.isGestureEnabled = true
             
-            if #available(iOS 26.0, *) {
-                let nativeTabBar = UITabBar()
-                self.nativeTabBar = nativeTabBar
-                
-                let itemFont = Font.semibold(10.0)
-                let itemColor: UIColor = .clear
-                
-                nativeTabBar.traitOverrides.verticalSizeClass = .compact
-                nativeTabBar.traitOverrides.horizontalSizeClass = .compact
-                nativeTabBar.standardAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-                nativeTabBar.standardAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-                nativeTabBar.standardAppearance.inlineLayoutAppearance.normal.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-                nativeTabBar.standardAppearance.inlineLayoutAppearance.selected.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-                nativeTabBar.standardAppearance.compactInlineLayoutAppearance.normal.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-                nativeTabBar.standardAppearance.compactInlineLayoutAppearance.selected.titleTextAttributes = [
-                    .foregroundColor: itemColor,
-                    .font: itemFont
-                ]
-            } else {
-                self.nativeTabBar = nil
-            }
+            self.nativeTabBar = nil
             
             super.init(frame: frame)
             
@@ -150,6 +116,14 @@ public final class TabBarComponent: Component {
             } else {
                 self.contextGestureContainerView.addSubview(self.backgroundView)
                 self.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.onTapGesture(_:))))
+                
+                let liquidGlassTabBarOverlay = LiquidGlassTabBarOverlay(frame: frame)
+                liquidGlassTabBarOverlay.isUserInteractionEnabled = false
+                self.liquidGlassTabBarOverlay = liquidGlassTabBarOverlay
+                self.addSubview(liquidGlassTabBarOverlay)
+                
+                let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(self.onPanGesture(_:)))
+                self.addGestureRecognizer(panGestureRecognizer)
             }
             
             self.contextGestureContainerView.shouldBegin = { [weak self] point in
@@ -275,7 +249,10 @@ public final class TabBarComponent: Component {
             }
         }
         
-        public func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        public func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
             return true
         }
         
@@ -296,6 +273,27 @@ public final class TabBarComponent: Component {
                     cancelGestures(view: nativeTabBar)
                 }
             }
+        }
+        
+        @objc private func onPanGesture(_ recognizer: UIPanGestureRecognizer) {
+//            guard let liquidMetalView else { return }
+//            
+//            let loc = recognizer.location(in: liquidMetalView)
+//
+//            // твой центр пузыря, как раньше (если есть)
+//            let offsetY: CGFloat = -50
+//            let adjusted = CGPoint(x: loc.x, y: loc.y + offsetY)
+//            let nx = Float(adjusted.x / liquidMetalView.bounds.width)
+//          //  let ny = Float(adjusted.y / liquidMetalView.bounds.height)
+//            liquidMetalView.renderer?.bubbleCenter = SIMD2<Float>(nx, 0.5)
+//
+//            // 👇 добавляем импульс для «плющения»
+//            let velocity = recognizer.velocity(in: liquidMetalView)
+//
+//            // хотим, чтобы при быстром движении по X пузырь плющился
+//            let impulse = Float(velocity.x) * 0.00002   // можно крутить коэффициент
+//
+//            liquidMetalView.renderer?.stretch += impulse
         }
         
         @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
@@ -540,6 +538,7 @@ public final class TabBarComponent: Component {
             }
             
             let size = CGSize(width: min(availableSize.width, contentWidth), height: contentHeight)
+            liquidGlassTabBarOverlay?.frame.size = size
             
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: size))
             self.backgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)

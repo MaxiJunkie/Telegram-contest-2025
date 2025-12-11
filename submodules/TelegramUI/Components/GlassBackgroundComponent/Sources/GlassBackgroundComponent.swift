@@ -326,42 +326,23 @@ public class GlassBackgroundView: UIView {
     
     public private(set) var params: Params?
         
-    public static var useCustomGlassImpl: Bool = false
+    public static var useCustomGlassImpl: Bool = true
     
     public override init(frame: CGRect) {
-        if #available(iOS 26.0, *), !GlassBackgroundView.useCustomGlassImpl {
-            self.backgroundNode = nil
-            
-            let glassEffect = UIGlassEffect(style: .regular)
-            glassEffect.isInteractive = false
-            let nativeView = UIVisualEffectView(effect: glassEffect)
-            self.nativeViewClippingContext = ClippingShapeContext(view: nativeView)
-            self.nativeView = nativeView
-            
-            let nativeParamsView = EffectSettingsContainerView(frame: CGRect())
-            self.nativeParamsView = nativeParamsView
-            
-            nativeParamsView.addSubview(nativeView)
-            
-            self.foregroundView = nil
-            self.shadowView = nil
-        } else {
-            let backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true, customBlurRadius: 8.0)
-            self.backgroundNode = backgroundNode
-            self.nativeView = nil
-            self.nativeViewClippingContext = nil
-            self.nativeParamsView = nil
-            self.foregroundView = UIImageView()
-            
-            self.shadowView = UIImageView()
-        }
+        let backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true, customBlurRadius: 8.0)
+        self.backgroundNode = backgroundNode
+        self.nativeView = nil
+        self.nativeViewClippingContext = nil
+        self.nativeParamsView = nil
+        self.foregroundView = UIImageView()
+        
+        self.shadowView = UIImageView()
         
         self.maskContainerView = UIView()
         self.maskContainerView.backgroundColor = .white
         if let filter = CALayer.luminanceToAlpha() {
             self.maskContainerView.layer.filters = [filter]
         }
-        
         self.maskContentView = UIView()
         self.maskContainerView.addSubview(self.maskContentView)
         
