@@ -1,9 +1,18 @@
 import UIKit
 import MetalKit
+import Foundation
+import Display
+import TelegramPresentationData
+import ComponentFlow
+import ComponentDisplayAdapters
+import GlassBackgroundComponent
+import MultilineTextComponent
+import LottieComponent
+import UIKitRuntimeUtils
+import BundleIconComponent
+import TextBadgeComponent
 
 class LiquidGlassTabBarOverlay: UIView {
-    
-    weak var backgroundView: UIView?
     
     private var metalLayer: CAMetalLayer? {
         layer as? CAMetalLayer
@@ -14,6 +23,8 @@ class LiquidGlassTabBarOverlay: UIView {
     }
     
     private var displayLink: CADisplayLink?
+    
+    private let backgroundViewForTexture = GlassBackgroundView()
     
     var renderer: BubbleRenderer?
 
@@ -57,11 +68,88 @@ class LiquidGlassTabBarOverlay: UIView {
         
         if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
             renderer = BubbleRenderer(device: device, renderSize: drawableSize)
-            
-            if let backgroundView {
-                renderer?.setBackgroundTexture(from: backgroundView)
-            }
+            renderer?.setBackgroundTexture(from: backgroundViewForTexture)
         }
+    }
+    
+    func update(
+        component: TabBarComponent,
+        availableSize: CGSize,
+        state: EmptyComponentState,
+        environment: Environment<Empty>,
+        transition: ComponentTransition
+    ) -> CGSize {
+        let innerInset: CGFloat = 3.0
+        
+        let availableSize = CGSize(width: min(500.0, availableSize.width), height: availableSize.height)
+        
+        var itemSize = CGSize(width: floor((availableSize.width - innerInset * 2.0) / CGFloat(component.items.count)), height: 56.0)
+        itemSize.width = min(94.0, itemSize.width)
+        
+        let contentHeight = itemSize.height + innerInset * 2.0
+        var contentWidth: CGFloat = innerInset
+        
+        var validIds: [AnyHashable] = []
+        
+        for index in 0 ..< component.items.count {
+            let item = component.items[index]
+            validIds.append(item.id)
+            
+            let itemView: ComponentView<Empty> = ComponentView()
+            let itemTransition = transition
+            
+            let selectedItemView: ComponentView<Empty> = ComponentView()
+            let isItemSelected = component.selectedId == item.id
+            
+            let _ = itemView.update(
+                transition: itemTransition,
+                component: AnyComponent(ItemComponent(
+                    item: item,
+                    theme: component.theme,
+                    isSelected: isItemSelected
+                )),
+                environment: {},
+                containerSize: itemSize
+            )
+            let _ = selectedItemView.update(
+                transition: itemTransition,
+                component: AnyComponent(ItemComponent(
+                    item: item,
+                    theme: component.theme,
+                    isSelected: true
+                )),
+                environment: {},
+                containerSize: itemSize
+            )
+            
+            let itemFrame = CGRect(origin: CGPoint(x: contentWidth, y: floor((contentHeight - itemSize.height) * 0.5)), size: itemSize)
+            if let itemComponentView = itemView.view as? ItemComponent.View, let selectedItemComponentView = selectedItemView.view as? ItemComponent.View {
+                if itemComponentView.superview == nil {
+                    self.backgroundViewForTexture.addSubview(selectedItemComponentView)
+                }
+                itemTransition.setFrame(view: selectedItemComponentView, frame: itemFrame)
+            }
+            
+            contentWidth += itemFrame.width
+        }
+        contentWidth += innerInset
+        
+        let size = CGSize(width: min(availableSize.width, contentWidth), height: contentHeight)
+        
+        transition.setFrame(view: backgroundViewForTexture, frame: CGRect(origin: CGPoint(), size: size))
+        self.backgroundViewForTexture.update(
+            size: size,
+            cornerRadius: size.height * 0.5,
+            isDark: component.theme.overallDarkAppearance,
+            tintColor: .init(
+                kind: .panel,
+                color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)),
+            transition: transition
+        )
+        
+        transition.setFrame(view: self, frame: CGRect(origin: CGPoint(), size: size))
+        
+        return size
     }
     
     private func commonInit() {

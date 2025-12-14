@@ -49,7 +49,7 @@ final class BubbleRenderer {
         }
         
         let v = library.makeFunction(name: "bubbleVertex")!
-        let f = library.makeFunction(name: "bubbleCapsule_Final")! // ← новое имя
+        let f = library.makeFunction(name: "bubbleCapsule_Final22")! // ← новое имя
 
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = v

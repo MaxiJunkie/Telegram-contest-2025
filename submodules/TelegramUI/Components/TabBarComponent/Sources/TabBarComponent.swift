@@ -17,7 +17,7 @@ public final class TabBarComponent: Component {
         public let action: (Bool) -> Void
         public let contextAction: ((ContextGesture, ContextExtractedContentContainingView) -> Void)?
         
-        fileprivate var id: AnyHashable {
+        var id: AnyHashable {
             return AnyHashable(ObjectIdentifier(self.item))
         }
         
@@ -119,7 +119,6 @@ public final class TabBarComponent: Component {
                 
                 let liquidGlassTabBarOverlay = LiquidGlassTabBarOverlay(frame: frame)
                 liquidGlassTabBarOverlay.isUserInteractionEnabled = false
-                liquidGlassTabBarOverlay.backgroundView = self
                 self.liquidGlassTabBarOverlay = liquidGlassTabBarOverlay
                 self.addSubview(liquidGlassTabBarOverlay)
                 
@@ -539,7 +538,13 @@ public final class TabBarComponent: Component {
             }
             
             let size = CGSize(width: min(availableSize.width, contentWidth), height: contentHeight)
-            liquidGlassTabBarOverlay?.frame.size = size
+            _ = liquidGlassTabBarOverlay?.update(
+                component: component,
+                availableSize: availableSize,
+                state: state,
+                environment: environment,
+                transition: transition
+            )
             
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: size))
             self.backgroundView.update(size: size, cornerRadius: size.height * 0.5, isDark: component.theme.overallDarkAppearance, tintColor: .init(kind: .panel, color: component.theme.chat.inputPanel.inputBackgroundColor.withMultipliedAlpha(0.7)), transition: transition)
@@ -564,7 +569,7 @@ public final class TabBarComponent: Component {
     }
 }
 
-private final class ItemComponent: Component {
+final class ItemComponent: Component {
     let item: TabBarComponent.Item
     let theme: PresentationTheme
     let isSelected: Bool
