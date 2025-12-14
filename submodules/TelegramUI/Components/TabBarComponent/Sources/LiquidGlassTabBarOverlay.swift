@@ -3,6 +3,8 @@ import MetalKit
 
 class LiquidGlassTabBarOverlay: UIView {
     
+    weak var backgroundView: UIView?
+    
     private var metalLayer: CAMetalLayer? {
         layer as? CAMetalLayer
     }
@@ -13,7 +15,7 @@ class LiquidGlassTabBarOverlay: UIView {
     
     private var displayLink: CADisplayLink?
     
-    private var renderer: BubbleRenderer?
+    var renderer: BubbleRenderer?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -55,6 +57,10 @@ class LiquidGlassTabBarOverlay: UIView {
         
         if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
             renderer = BubbleRenderer(device: device, renderSize: drawableSize)
+            
+            if let backgroundView {
+                renderer?.setBackgroundTexture(from: backgroundView)
+            }
         }
     }
     

@@ -329,7 +329,7 @@ public class GlassBackgroundView: UIView {
     public static var useCustomGlassImpl: Bool = true
     
     public override init(frame: CGRect) {
-        let backgroundNode = NavigationBackgroundNode(color: .black, enableBlur: true, customBlurRadius: 8.0)
+        let backgroundNode = NavigationBackgroundNode(color: .white, enableBlur: false, customBlurRadius: 8.0)
         self.backgroundNode = backgroundNode
         self.nativeView = nil
         self.nativeViewClippingContext = nil
@@ -399,7 +399,7 @@ public class GlassBackgroundView: UIView {
             }
         }
         if let backgroundNode = self.backgroundNode {
-            backgroundNode.updateColor(color: .clear, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
+            backgroundNode.updateColor(color: .white, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
             
             switch shape {
             case let .roundedRect(cornerRadius):

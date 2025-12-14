@@ -107,7 +107,7 @@ final class BubbleRenderer {
     
     private var backgroundTexture: MTLTexture?
     
-    func setBackground(image: UIImage) {
+    private func setBackground(image: UIImage) {
         guard let cgImage = image.cgImage else {
             print("no cgImage")
             return
@@ -163,6 +163,22 @@ final class BubbleRenderer {
 
         backgroundTexture = tex
         print("✅ bg texture \(width)x\(height)")
+    }
+    
+    func setBackgroundTexture(from view: UIView) {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        format.opaque = false
+        
+        let size = CGSize(width: Int(view.bounds.size.width), height: Int(view.bounds.size.height))
+        
+        let rendererImg = UIGraphicsImageRenderer(size: size, format: format)
+
+        let image = rendererImg.image { ctx in
+            view.layer.render(in: ctx.cgContext)
+        }
+        
+        setBackground(image: image)
     }
     
     func draw(to drawable: CAMetalDrawable) {
