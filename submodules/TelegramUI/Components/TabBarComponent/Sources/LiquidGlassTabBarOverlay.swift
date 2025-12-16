@@ -156,7 +156,7 @@ class LiquidGlassTabBarOverlay: UIView {
         
         let bubbleHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
         let screenWidth = UIScreen.main.bounds.width
-        let xOffset = (screenWidth - size.width) / 2
+        let xOffset: CGFloat = (screenWidth - size.width) / 2
         let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
         transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: screenWidth, height: bubbleHeight)))
         

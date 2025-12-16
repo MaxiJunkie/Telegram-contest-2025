@@ -86,69 +86,52 @@ fragment float4 bubbleCapsule(
     // ---------- SDF normal ----------
     float2 grad = float2(dfdx(sdf), dfdy(sdf));
     float2 n    = normalize(grad + 1e-6);
-
-    // =====================================================
-    //                 MASK LOGIC
-    // =====================================================
-
-    // =====================================================
-    //          THICKNESS-BASED MASK LOGIC (50 / 50)
-    // =====================================================
-
-    float thickness = 0.3;          // общая толщина пузыря
+    
+    float thickness = 0.2;
     float t = saturate(absS / thickness);
 
-    // BLUR: внешний край → середина
-    float blurMask = smoothstep(0.5, 0.0, t);
-
-    // REFRACTION: внутренняя граница → середина
-    float refMask  = smoothstep(0.5, 1.0, t);
+    float refMask  = smoothstep(0.6, 0.0, t);
 
     // =====================================================
     //                 REFRACTION
     // =====================================================
-
-    float refBase = 0.10;
+    
+    float blurOuter = smoothstep(0.6, 0.0, absS);
+    float refBase = 0.08;
     float refMax  = 0.65;
-    float refStrength = refBase + refMax * refMask;
+    float refStrength = refBase + refMax * blurOuter;
+    float2 offset = n * refStrength * 0.2;
+    
+    float chroma = 0.20 * blurOuter;
 
-    float2 offset = n * refStrength * 0.05;
+    float3 s1 = background.sample(sampler, uv - offset * (1.0 + chroma)).rgb;
+    float3 s2 = background.sample(sampler, uv - offset * (1.0 - chroma)).rgb;
 
-    float chroma = 0.2 * refMask;
-
-    float3 r1 = background.sample(sampler, uv - offset * (1.0 + chroma)).rgb;
-    float3 r2 = background.sample(sampler, uv - offset * (1.0 - chroma)).rgb;
-
-    float3 refracted = float3(
-        r1.r,
-        mix(r1.g, r2.g, 0.55),
-        r2.b * 1.12
+    float3 refractedChromatic = float3(
+        s1.r,
+        mix(s1.g, s2.g, 0.55),
+        s2.b * 1.12
     );
-
+    
+    float3 refracted = refractedChromatic;
+    
     // =====================================================
     //                 MIPMAP BLUR
     // =====================================================
-
+    
+    float blurMask = smoothstep(1, 0.0, t);
     float blurLOD = mix(0.0, 4, blurMask);
     float3 blurred = background.sample(sampler, uv, level(blurLOD)).rgb;
 
     // =====================================================
     //                 COMPOSITION
     // =====================================================
-
-    // 1. линза
+    
     float3 lens = mix(base, refracted, refMask);
 
-    // 2. blur поверх линзы
     float3 glass = mix(lens, blurred, blurMask);
 
-    // 3. применяем форму пузыря
     float3 final = mix(base, glass, shapeMask);
 
-//    final *= (1.0 - edgeDarken);
-//
-//    // добавляем тонкий светлый highlight
-//    final += edgeHighlight;
-
-    return float4(final, 1);
+    return float4(final, shapeMask);
 }

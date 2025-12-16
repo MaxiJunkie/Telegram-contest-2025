@@ -13,14 +13,14 @@ final class BubbleRenderer {
     private let commandQueue: MTLCommandQueue
 
     private var vertexBuffer: MTLBuffer!
-
-    // параметры пузыря в нормализованных координатах (0...1)
-    var bubbleCenter: SIMD2<Float>
-    var radius: Float = 0.45
-    var strength: Float = 0.5   // теперь это "насколько он виден"
     
-    var stretch: Float = 0          // текущая «плющилка» (-0.3...0.3)
-    var stretchVel: Float = 0   // скорость возврата
+    var bubbleCenter: SIMD2<Float>
+    
+    var stretch: Float = 0
+    
+    private var stretchVelocity: Float = 0
+    private let stiffness: Float = 25
+    private let damping : Float = 0.9
     
     private var sampler: MTLSamplerState?
     private var msaaTexture: MTLTexture?
@@ -49,18 +49,26 @@ final class BubbleRenderer {
             return nil
         }
         
-        let v = library.makeFunction(name: "bubbleVertex")!
-        let f = library.makeFunction(name: "bubbleCapsule")! // ← новое имя
-
+        guard let vertexFunction = library.makeFunction(name: "bubbleVertex") else {
+            return nil
+        }
+        
+        guard let fragmentFunction = library.makeFunction(name: "bubbleCapsule") else {
+            return nil
+        }
+            
         let descriptor = MTLRenderPipelineDescriptor()
-        descriptor.vertexFunction = v
-        descriptor.fragmentFunction = f
+        descriptor.vertexFunction = vertexFunction
+        descriptor.fragmentFunction = fragmentFunction
         descriptor.rasterSampleCount = 4
         descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
         self.textureLoader = MTKTextureLoader(device: device)
         
-        pipeline = try! device.makeRenderPipelineState(descriptor: descriptor)
+        guard let pipeline = try? device.makeRenderPipelineState(descriptor: descriptor) else {
+            return nil
+        }
 
+        self.pipeline = pipeline
         makeFullscreenQuad()
         setupMSAATexture()
         setupSampler()
@@ -108,49 +116,57 @@ final class BubbleRenderer {
     
     private var backgroundTexture: MTLTexture?
     
-    private func setBackground(image: UIImage) {
+    private func setBackground(from view: UIView) {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = UIScreen.main.scale
+        format.opaque = false
+        
+        let size = view.bounds.size
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+
+        let image = renderer.image { ctx in
+            view.layer.render(in: ctx.cgContext)
+        }
+        
         guard let cgImage = image.cgImage else {
-            print("no cgImage")
             return
         }
 
-        let width  = cgImage.width
+        let width = cgImage.width
         let height = cgImage.height
 
-        // BGRA8, как ожидает .bgra8Unorm
-        let bytesPerPixel    = 4
-        let bytesPerRow      = bytesPerPixel * width
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
         let bitsPerComponent = 8
 
         var rawData = [UInt8](repeating: 0, count: width * height * bytesPerPixel)
 
-        guard let context = CGContext(
-            data: &rawData,
-            width: width,
-            height: height,
-            bitsPerComponent: bitsPerComponent,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
-                      | CGBitmapInfo.byteOrder32Little.rawValue  // BGRA
-        ) else {
-            print("failed to create CGContext")
+        guard
+            let context = CGContext(
+                data: &rawData,
+                width: width,
+                height: height,
+                bitsPerComponent: bitsPerComponent,
+                bytesPerRow: bytesPerRow,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+                        | CGBitmapInfo.byteOrder32Little.rawValue
+            )
+        else {
             return
         }
-
-        // рисуем картинку в наш rawData
+        
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         let desc = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .bgra8Unorm,
             width: width,
             height: height,
-            mipmapped: true // 🔴 ОБЯЗАТЕЛЬНО
+            mipmapped: true
         )
         desc.usage = [.shaderRead, .renderTarget]
         
         guard let tex = device.makeTexture(descriptor: desc) else {
-            print("failed to make texture")
             return
         }
 
@@ -172,23 +188,15 @@ final class BubbleRenderer {
         commandBuffer.waitUntilCompleted()
         
         backgroundTexture = tex
-        print("✅ bg texture \(width)x\(height)")
     }
     
     func setBackgroundTexture(from view: UIView) {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
-        format.opaque = false
-        
-        let size = CGSize(width: Int(view.bounds.size.width), height: Int(view.bounds.size.height))
-        
-        let rendererImg = UIGraphicsImageRenderer(size: size, format: format)
-
-        let image = rendererImg.image { ctx in
-            view.layer.render(in: ctx.cgContext)
+        let t = Date.timeIntervalSinceReferenceDate
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.setBackgroundTexture(from: view)
+            
+            print("setBackgroundTexture time !! \(Date.timeIntervalSinceReferenceDate - t)")
         }
-        
-        setBackground(image: image)
     }
     
     func draw(to drawable: CAMetalDrawable) {
@@ -196,18 +204,12 @@ final class BubbleRenderer {
 
         guard let backgroundTexture else { return }
         
-        // простое dt — у тебя всё равно fixed 60fps
         let dt: Float = 1.0 / 60.0
-
-        let stiffness: Float = 25   // сила возврата к 0
-        let damping : Float = 0.9    // затухание колебаний
-
-        // пружина: tянем stretch обратно к 0
-        stretchVel += -stretch * stiffness * dt
-        stretchVel *= damping
-        stretch += stretchVel * dt
-
-        // ограничим, чтобы не порвать форму
+        
+        stretchVelocity += -stretch * stiffness * dt
+        stretchVelocity *= damping
+        stretch += stretchVelocity * dt
+        
         let maxStretch: Float = 0.35
         stretch = max(-maxStretch, min(maxStretch, stretch))
         
@@ -229,20 +231,6 @@ final class BubbleRenderer {
 
         var size = SIMD2<Float>(Float(renderSize.width),
                                 Float(renderSize.height))
-
-//        var center = bubbleCenter
-//        var r = radius
-//        var s = strength
-//
-//        encoder.setFragmentBytes(&center,
-//                                 length: MemoryLayout<SIMD2<Float>>.size,
-//                                 index: 1)
-//        encoder.setFragmentBytes(&r,
-//                                 length: MemoryLayout<Float>.size,
-//                                 index: 2)
-//        encoder.setFragmentBytes(&s,
-//                                 length: MemoryLayout<Float>.size,
-//                                 index: 3)
         
         encoder.setFragmentBytes(&size, length: MemoryLayout<SIMD2<Float>>.size, index: 4)
         
