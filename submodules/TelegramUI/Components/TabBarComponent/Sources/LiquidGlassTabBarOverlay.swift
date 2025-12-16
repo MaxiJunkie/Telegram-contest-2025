@@ -14,6 +14,10 @@ import TextBadgeComponent
 
 class LiquidGlassTabBarOverlay: UIView {
     
+    private enum Spec {
+        static var bubbleRelativeHeigth: CGFloat { 1.4 }
+    }
+    
     private var metalLayer: CAMetalLayer? {
         layer as? CAMetalLayer
     }
@@ -67,7 +71,10 @@ class LiquidGlassTabBarOverlay: UIView {
         metalLayer?.drawableSize = drawableSize
         
         if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
-            renderer = BubbleRenderer(device: device, renderSize: drawableSize)
+            renderer = BubbleRenderer(
+                device: device,
+                renderSize: drawableSize
+            )
             renderer?.setBackgroundTexture(from: backgroundViewForTexture)
         }
     }
@@ -147,7 +154,11 @@ class LiquidGlassTabBarOverlay: UIView {
             transition: transition
         )
         
-        transition.setFrame(view: self, frame: CGRect(origin: CGPoint(), size: size))
+        let bubbleHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
+        let screenWidth = UIScreen.main.bounds.width
+        let xOffset = (screenWidth - size.width) / 2
+        let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
+        transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: screenWidth, height: bubbleHeight)))
         
         return size
     }

@@ -285,7 +285,7 @@ public final class TabBarComponent: Component {
             let adjusted = CGPoint(x: loc.x, y: loc.y + offsetY)
             let nx = Float(adjusted.x / liquidGlassTabBarOverlay.bounds.width)
           //  let ny = Float(adjusted.y / liquidMetalView.bounds.height)
-            liquidGlassTabBarOverlay.renderer?.bubbleCenter = SIMD2<Float>(nx, 0.5)
+            liquidGlassTabBarOverlay.renderer?.bubbleCenter.x = nx
 
             // 👇 добавляем импульс для «плющения»
             let velocity = recognizer.velocity(in: liquidGlassTabBarOverlay)

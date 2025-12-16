@@ -15,7 +15,7 @@ final class BubbleRenderer {
     private var vertexBuffer: MTLBuffer!
 
     // параметры пузыря в нормализованных координатах (0...1)
-    var bubbleCenter = SIMD2<Float>(0.5, 0.5)
+    var bubbleCenter: SIMD2<Float>
     var radius: Float = 0.45
     var strength: Float = 0.5   // теперь это "насколько он виден"
     
@@ -30,6 +30,7 @@ final class BubbleRenderer {
     init?(device: MTLDevice, renderSize: CGSize) {
         self.device = device
         self.renderSize = renderSize
+        self.bubbleCenter = .init(x: 0.5, y: 0.5)
         
         guard let queue = device.makeCommandQueue() else { return nil }
         commandQueue = queue
@@ -49,7 +50,7 @@ final class BubbleRenderer {
         }
         
         let v = library.makeFunction(name: "bubbleVertex")!
-        let f = library.makeFunction(name: "bubbleCapsule_Final22")! // ← новое имя
+        let f = library.makeFunction(name: "bubbleCapsule")! // ← новое имя
 
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.vertexFunction = v
@@ -144,10 +145,10 @@ final class BubbleRenderer {
             pixelFormat: .bgra8Unorm,
             width: width,
             height: height,
-            mipmapped: false
+            mipmapped: true // 🔴 ОБЯЗАТЕЛЬНО
         )
-        desc.usage = [.shaderRead]
-
+        desc.usage = [.shaderRead, .renderTarget]
+        
         guard let tex = device.makeTexture(descriptor: desc) else {
             print("failed to make texture")
             return
@@ -161,6 +162,15 @@ final class BubbleRenderer {
             bytesPerRow: bytesPerRow
         )
 
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let blit = commandBuffer.makeBlitCommandEncoder()
+        else { return }
+
+        blit.generateMipmaps(for: tex)
+        blit.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+        
         backgroundTexture = tex
         print("✅ bg texture \(width)x\(height)")
     }
@@ -184,6 +194,8 @@ final class BubbleRenderer {
     func draw(to drawable: CAMetalDrawable) {
         guard let commandBuffer = commandQueue.makeCommandBuffer() else { return }
 
+        guard let backgroundTexture else { return }
+        
         // простое dt — у тебя всё равно fixed 60fps
         let dt: Float = 1.0 / 60.0
 
