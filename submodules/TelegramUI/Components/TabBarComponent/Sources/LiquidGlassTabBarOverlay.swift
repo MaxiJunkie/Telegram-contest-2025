@@ -99,7 +99,8 @@ class LiquidGlassTabBarOverlay: UIView {
         
         switch recognizer.state {
         case .began:
-            let xPosition = currentSelectionFrame.midX
+            let xOffset: CGFloat = (UIScreen.main.bounds.width - backgroundViewForTexture.bounds.width) / 2
+            let xPosition = currentSelectionFrame.midX + xOffset
             renderer.appearTarget = 1.0
             renderer.setBackgroundTexture(from: backgroundViewForTexture)
             
@@ -110,7 +111,8 @@ class LiquidGlassTabBarOverlay: UIView {
             updateCenterAndStretch(xPosition: location.x, velocity: velocity)
 
         case .ended, .cancelled, .failed:
-            let xPosition = currentSelectionFrame.midX
+            let xOffset: CGFloat = (UIScreen.main.bounds.width - backgroundViewForTexture.bounds.width) / 2
+            let xPosition = currentSelectionFrame.midX + xOffset
             updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
             renderer.appearTarget = 0.0
 
@@ -182,7 +184,7 @@ class LiquidGlassTabBarOverlay: UIView {
         )
         
         let bubbleHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
-        let xOffset: CGFloat = 0 // (UIScreen.main.bounds.width - size.width) / 2
+        let xOffset: CGFloat = (UIScreen.main.bounds.width - size.width) / 2
         let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
         let width = size.width + 2 * xOffset
         transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: width, height: bubbleHeight)))
