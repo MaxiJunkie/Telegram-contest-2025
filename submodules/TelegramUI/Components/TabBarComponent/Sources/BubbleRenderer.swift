@@ -116,7 +116,7 @@ final class BubbleRenderer {
     
     private var backgroundTexture: MTLTexture?
     
-    private func setBackground(from view: UIView) {
+    private func createTexture(from view: UIView) {
         let format = UIGraphicsImageRendererFormat()
         format.scale = UIScreen.main.scale
         format.opaque = false
@@ -191,12 +191,7 @@ final class BubbleRenderer {
     }
     
     func setBackgroundTexture(from view: UIView) {
-        let t = Date.timeIntervalSinceReferenceDate
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.setBackgroundTexture(from: view)
-            
-            print("setBackgroundTexture time !! \(Date.timeIntervalSinceReferenceDate - t)")
-        }
+        self.createTexture(from: view)
     }
     
     func draw(to drawable: CAMetalDrawable) {

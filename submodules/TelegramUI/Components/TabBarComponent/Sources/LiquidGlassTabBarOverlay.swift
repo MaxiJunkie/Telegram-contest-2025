@@ -30,7 +30,7 @@ class LiquidGlassTabBarOverlay: UIView {
     
     private let backgroundViewForTexture = GlassBackgroundView()
     
-    var renderer: BubbleRenderer?
+    private var renderer: BubbleRenderer?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -79,11 +79,24 @@ class LiquidGlassTabBarOverlay: UIView {
         }
     }
     
+    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer) {
+        let loc = recognizer.location(in: self)
+        let xPosition = Float(loc.x / self.bounds.width)
+        
+        print("xPosition \(xPosition)")
+        
+        renderer?.bubbleCenter.x = xPosition
+        
+        let velocity = recognizer.velocity(in: self)
+        
+        let impulse = Float(velocity.x) * 0.00002
+
+        renderer?.stretch += impulse
+    }
+    
     func update(
         component: TabBarComponent,
         availableSize: CGSize,
-        state: EmptyComponentState,
-        environment: Environment<Empty>,
         transition: ComponentTransition
     ) -> CGSize {
         let innerInset: CGFloat = 3.0
@@ -134,6 +147,7 @@ class LiquidGlassTabBarOverlay: UIView {
                 if itemComponentView.superview == nil {
                     self.backgroundViewForTexture.addSubview(selectedItemComponentView)
                 }
+                
                 itemTransition.setFrame(view: selectedItemComponentView, frame: itemFrame)
             }
             

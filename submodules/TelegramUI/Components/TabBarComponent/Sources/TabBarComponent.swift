@@ -276,24 +276,7 @@ public final class TabBarComponent: Component {
         }
         
         @objc private func onPanGesture(_ recognizer: UIPanGestureRecognizer) {
-            guard let liquidGlassTabBarOverlay else { return }
-            
-            let loc = recognizer.location(in: liquidGlassTabBarOverlay)
-
-            // твой центр пузыря, как раньше (если есть)
-            let offsetY: CGFloat = -50
-            let adjusted = CGPoint(x: loc.x, y: loc.y + offsetY)
-            let nx = Float(adjusted.x / liquidGlassTabBarOverlay.bounds.width)
-          //  let ny = Float(adjusted.y / liquidMetalView.bounds.height)
-            liquidGlassTabBarOverlay.renderer?.bubbleCenter.x = nx
-
-            // 👇 добавляем импульс для «плющения»
-            let velocity = recognizer.velocity(in: liquidGlassTabBarOverlay)
-
-            // хотим, чтобы при быстром движении по X пузырь плющился
-            let impulse = Float(velocity.x) * 0.00002   // можно крутить коэффициент
-
-            liquidGlassTabBarOverlay.renderer?.stretch += impulse
+            liquidGlassTabBarOverlay?.updateBubblePosition(recognizer)
         }
         
         @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
@@ -541,8 +524,6 @@ public final class TabBarComponent: Component {
             _ = liquidGlassTabBarOverlay?.update(
                 component: component,
                 availableSize: availableSize,
-                state: state,
-                environment: environment,
                 transition: transition
             )
             
