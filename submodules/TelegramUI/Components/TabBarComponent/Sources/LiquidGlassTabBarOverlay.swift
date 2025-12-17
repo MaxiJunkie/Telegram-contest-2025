@@ -41,6 +41,8 @@ class LiquidGlassTabBarOverlay: UIView {
     
     private var bubbleViewSize: CGSize = .zero
     
+    private var backgroundViewDidLayout = false
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
@@ -96,10 +98,10 @@ class LiquidGlassTabBarOverlay: UIView {
         guard let renderer else { return }
         
         let velocity = recognizer.velocity(in: self)
+        let xOffset: CGFloat = (bounds.width - backgroundViewForTexture.bounds.width) / 2
         
         switch recognizer.state {
         case .began:
-            let xOffset: CGFloat = (UIScreen.main.bounds.width - backgroundViewForTexture.bounds.width) / 2
             let xPosition = currentSelectionFrame.midX + xOffset
             renderer.appearTarget = 1.0
             renderer.setBackgroundTexture(from: backgroundViewForTexture)
@@ -108,10 +110,12 @@ class LiquidGlassTabBarOverlay: UIView {
 
         case .changed:
             let location = recognizer.location(in: self)
-            updateCenterAndStretch(xPosition: location.x, velocity: velocity)
+            let haldWidth = currentSelectionFrame.width / 2 + 5
+            let minX = haldWidth + xOffset
+            let maxX = backgroundViewForTexture.bounds.width - haldWidth + xOffset
+            updateCenterAndStretch(xPosition: min(max(location.x, minX), maxX), velocity: velocity)
 
         case .ended, .cancelled, .failed:
-            let xOffset: CGFloat = (UIScreen.main.bounds.width - backgroundViewForTexture.bounds.width) / 2
             let xPosition = currentSelectionFrame.midX + xOffset
             updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
             renderer.appearTarget = 0.0
@@ -126,8 +130,11 @@ class LiquidGlassTabBarOverlay: UIView {
         availableSize: CGSize,
         transition: ComponentTransition,
         selectionFrame: CGRect
-    ) -> CGSize {
+    ) {
         self.bubbleViewSize = selectionFrame.size
+        
+        guard !backgroundViewDidLayout else { return }
+        backgroundViewDidLayout = true
         
         let innerInset: CGFloat = 3.0
         
@@ -188,8 +195,6 @@ class LiquidGlassTabBarOverlay: UIView {
         let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
         let width = size.width + 2 * xOffset
         transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: width, height: bubbleHeight)))
-        
-        return size
     }
     
     private func commonInit() {

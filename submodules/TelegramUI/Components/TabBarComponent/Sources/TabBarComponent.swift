@@ -580,7 +580,7 @@ public final class TabBarComponent: Component {
             }
             
             let size = CGSize(width: min(availableSize.width, contentWidth), height: contentHeight)
-            _ = liquidGlassTabBarOverlay?.update(
+            liquidGlassTabBarOverlay?.update(
                 component: component,
                 availableSize: availableSize,
                 transition: transition,
