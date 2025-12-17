@@ -20,6 +20,8 @@ final class BubbleRenderer {
     
     var appearTarget: Float = 0
     
+    var bubbleViewSize: CGSize = .zero
+    
     private var appear: Float = 0
     
     private var stretchVelocity: Float = 0
@@ -205,14 +207,10 @@ final class BubbleRenderer {
         
         let dt: Float = 1.0 / 60.0
         
-        let speed: Float = 6.0   // чем больше, тем быстрее анимация (~0.1–0.2 c)
+        let speed: Float = 7.0   // чем больше, тем быстрее анимация (~0.1–0.2 c)
         let diff = appearTarget - appear
         let step = diff * min(1, dt * speed)
         appear += step
-        
-        if appear < 0.001 {
-            appear = 0
-        }
         
         stretchVelocity += -stretch * stiffness * dt
         stretchVelocity *= damping
@@ -258,6 +256,15 @@ final class BubbleRenderer {
             length: MemoryLayout<Float>.stride,
             index: 7
         )
+        
+        var bubbleSize = SIMD2<Float>(
+            Float(bubbleViewSize.width),
+            Float(bubbleViewSize.height)
+        )
+        
+        encoder.setFragmentBytes(&bubbleSize,
+                                 length: MemoryLayout<SIMD2<Float>>.stride,
+                                 index: 8)
         
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 

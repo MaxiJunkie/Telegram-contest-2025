@@ -524,7 +524,8 @@ public final class TabBarComponent: Component {
             _ = liquidGlassTabBarOverlay?.update(
                 component: component,
                 availableSize: availableSize,
-                transition: transition
+                transition: transition,
+                selectionFrame: selectionFrame ?? .zero
             )
             
             transition.setFrame(view: self.backgroundView, frame: CGRect(origin: CGPoint(), size: size))

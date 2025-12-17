@@ -45,32 +45,41 @@ fragment float4 bubbleCapsule(
     constant float2 &viewSize      [[buffer(4)]],
     constant float  &stretch       [[buffer(5)]],
     constant float2 &bubbleCenter  [[buffer(6)]],
-    constant float  &appear        [[buffer(7)]]
+    constant float  &appear        [[buffer(7)]],
+    constant float2 &bubbleViewSize [[buffer(8)]]
 )
 {
     float2 uv = in.uv;
     float a = saturate(appear);
 
-    if (a <= 0.02) {
+    if (a <= 0.001) {
         return float4(0.0, 0.0, 0.0, 0.0);
     }
-    
+
+    // ---------- APPEAR: fade + scale ----------
+    float fade = smoothstep(0.0, 0.6, a);
+    float grow = smoothstep(0.25, 1.0, a);
+
+    // +20% к размеру в максимальном состоянии
+    const float extraScale = 0.20;
+    float scale = 1.0 + extraScale * grow;
+
     // ---------- aspect-correct space ----------
     float aspect = viewSize.x / viewSize.y;
     float2 p      = float2(uv.x * aspect, uv.y);
     float2 center = float2(bubbleCenter.x * aspect, bubbleCenter.y);
 
     // ---------- capsule geometry ----------
-    float2 baseSize   = float2(1.2, 0.8);
+    float ratio  = bubbleViewSize.x / bubbleViewSize.y;
+    float height = bubbleViewSize.y / viewSize.y;   // нормализованная высота
+
+    // baseSize = тот самый "исходный" размер
+    float2 baseSize   = float2(height * ratio, height);
     float  baseCorner = baseSize.y * 0.5;
 
     float s  = clamp(stretch, -0.6, 0.6);
     float sx = 1.0 - abs(s) * 1.2;
     float sy = 1.0 + 0.5 * abs(s);
-
-    // ---------- APPEAR ANIM (scale + fade) ----------
-    float grow = smoothstep(0.0, 1.0, a);
-    float scale = grow;
 
     float2 boxSize = float2(baseSize.x * sx * scale,
                             baseSize.y * sy * scale);
@@ -87,21 +96,23 @@ fragment float4 bubbleCapsule(
     float rimInner = 0.02;
     float rimMask  = smoothstep(rimOuter, rimInner, absS);
 
-    float gate = shapeMask * rimMask;
+    shapeMask *= fade;
+    rimMask   *= fade;
     
+    float gate = shapeMask * rimMask;
     if (gate <= 0.001) {
-        discard_fragment();
+        // вне пузыря – полностью прозрачный пиксель
+        return float4(0.0, 0.0, 0.0, 0.0);
     }
 
     float3 base = background.sample(sampler, uv).rgb;
-
+    
     // ---------- SDF normal ----------
     float2 grad = float2(dfdx(sdf), dfdy(sdf));
     float2 n    = normalize(grad + 1e-6);
     
     float thickness = 0.2;
     float t = saturate(absS / thickness);
-
     float refMask  = smoothstep(0.6, 0.0, t);
 
     // =====================================================
@@ -139,12 +150,10 @@ fragment float4 bubbleCapsule(
     //                 COMPOSITION
     // =====================================================
     
-    float3 lens = mix(base, refracted, refMask);
+    float3 lens  = mix(base, refracted, refMask);
     float3 glass = mix(lens, blurred, blurMask);
 
-    // fade-ин: на старте пузырь ещё маленький и прозрачный
-    float fade = smoothstep(0.0, 0.15, a);    // 0..1, первые ~15% пути
-
+    // здесь fade уже посчитан в начале и не нужно считать его второй раз
     float3 final = mix(base, glass, shapeMask * fade);
 
     return float4(final, shapeMask * fade);
