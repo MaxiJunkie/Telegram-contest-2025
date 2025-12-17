@@ -22,7 +22,7 @@ final class BubbleRenderer {
     
     var bubbleViewSize: CGSize = .zero
     
-    private var appear: Float = 0
+    var appear: Float = 0
     
     private var stretchVelocity: Float = 0
     private let stiffness: Float = 25
@@ -210,6 +210,11 @@ final class BubbleRenderer {
         let speed: Float = 7.0   // чем больше, тем быстрее анимация (~0.1–0.2 c)
         let diff = appearTarget - appear
         let step = diff * min(1, dt * speed)
+        
+        if appear < 0.001 {
+            appear = 0
+        }
+        
         appear += step
         
         stretchVelocity += -stretch * stiffness * dt

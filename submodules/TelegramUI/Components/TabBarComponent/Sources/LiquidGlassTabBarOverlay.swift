@@ -14,6 +14,11 @@ import TextBadgeComponent
 
 class LiquidGlassTabBarOverlay: UIView {
     
+    enum AnimationProgress {
+        case showing(progress: Float)
+        case dismissing(progress: Float)
+    }
+    
     private enum Spec {
         static var bubbleRelativeHeigth: CGFloat { 1.4 }
     }
@@ -25,6 +30,8 @@ class LiquidGlassTabBarOverlay: UIView {
     override class var layerClass: AnyClass {
         return CAMetalLayer.self
     }
+    
+    var animationProgress: ((AnimationProgress) -> Void)?
     
     private var displayLink: CADisplayLink?
     
@@ -133,10 +140,10 @@ class LiquidGlassTabBarOverlay: UIView {
             let item = component.items[index]
             validIds.append(item.id)
             
-            let itemView: ComponentView<Empty> = ComponentView()
+            let itemView: ComponentView<ComponentFlow.Empty> = ComponentView()
             let itemTransition = transition
             
-            let selectedItemView: ComponentView<Empty> = ComponentView()
+            let selectedItemView: ComponentView<ComponentFlow.Empty> = ComponentView()
             let isItemSelected = component.selectedId == item.id
             
             let _ = itemView.update(
@@ -210,9 +217,15 @@ class LiquidGlassTabBarOverlay: UIView {
     
     @objc
     private func handleDisplayTick(displayLink: CADisplayLink) {
-        guard let drawable = metalLayer?.nextDrawable() else { return }
+        guard let drawable = metalLayer?.nextDrawable(), let renderer else { return }
         
-        renderer?.draw(to: drawable)
+        if renderer.appearTarget == 1 {
+            animationProgress?(.showing(progress: 1 - renderer.appear))
+        } else {
+            animationProgress?(.dismissing(progress: 1 - renderer.appear))
+        }
+        
+        renderer.draw(to: drawable)
     }
     
     private func updateCenterAndStretch(location: CGPoint, velocity: CGPoint) {

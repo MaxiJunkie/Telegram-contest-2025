@@ -122,6 +122,17 @@ public final class TabBarComponent: Component {
                 self.liquidGlassTabBarOverlay = liquidGlassTabBarOverlay
                 self.addSubview(liquidGlassTabBarOverlay)
                 
+                let color = UIColor(rgb: 0xe1edf9)
+                
+                liquidGlassTabBarOverlay.animationProgress = { [weak self] progress in
+                    switch progress {
+                    case let .dismissing(progress):
+                        self?.selectionView.tintColor = color.withAlphaComponent(CGFloat(progress))
+                    case let .showing(progress):
+                        self?.selectionView.tintColor = color.withAlphaComponent(CGFloat(progress))
+                    }
+                }
+                
                 let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(self.onPanGesture(_:)))
                 self.addGestureRecognizer(panGestureRecognizer)
             }
@@ -406,7 +417,7 @@ public final class TabBarComponent: Component {
             if self.selectionView.image?.size.height != itemSize.height {
                 self.selectionView.image = generateStretchableFilledCircleImage(radius: itemSize.height * 0.5, color: .white)?.withRenderingMode(.alwaysTemplate)
             }
-            self.selectionView.tintColor = component.theme.list.itemPrimaryTextColor.withMultipliedAlpha(0.05)
+            self.selectionView.tintColor = UIColor(rgb: 0xe1edf9)
             
             var validIds: [AnyHashable] = []
             var selectionFrame: CGRect?
