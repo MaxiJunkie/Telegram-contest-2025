@@ -143,22 +143,9 @@ class LiquidGlassTabBarOverlay: UIView {
             let item = component.items[index]
             validIds.append(item.id)
             
-            let itemView: ComponentView<ComponentFlow.Empty> = ComponentView()
             let itemTransition = transition
-            
             let selectedItemView: ComponentView<ComponentFlow.Empty> = ComponentView()
-            let isItemSelected = component.selectedId == item.id
             
-            let _ = itemView.update(
-                transition: itemTransition,
-                component: AnyComponent(ItemComponent(
-                    item: item,
-                    theme: component.theme,
-                    isSelected: isItemSelected
-                )),
-                environment: {},
-                containerSize: itemSize
-            )
             let _ = selectedItemView.update(
                 transition: itemTransition,
                 component: AnyComponent(ItemComponent(
@@ -171,10 +158,8 @@ class LiquidGlassTabBarOverlay: UIView {
             )
             
             let itemFrame = CGRect(origin: CGPoint(x: contentWidth, y: floor((contentHeight - itemSize.height) * 0.5)), size: itemSize)
-            if let itemComponentView = itemView.view as? ItemComponent.View, let selectedItemComponentView = selectedItemView.view as? ItemComponent.View {
-                if itemComponentView.superview == nil {
-                    self.backgroundViewForTexture.addSubview(selectedItemComponentView)
-                }
+            if let selectedItemComponentView = selectedItemView.view as? ItemComponent.View {
+                self.backgroundViewForTexture.addSubview(selectedItemComponentView)
                 
                 itemTransition.setFrame(view: selectedItemComponentView, frame: itemFrame)
             }
@@ -197,7 +182,7 @@ class LiquidGlassTabBarOverlay: UIView {
         )
         
         let bubbleHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
-        let xOffset: CGFloat = (UIScreen.main.bounds.width - size.width) / 2
+        let xOffset: CGFloat = 0 // (UIScreen.main.bounds.width - size.width) / 2
         let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
         let width = size.width + 2 * xOffset
         transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: width, height: bubbleHeight)))

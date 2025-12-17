@@ -173,7 +173,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
                 if strongSelf.debugTapCounter.1 >= 10 {
                     strongSelf.debugTapCounter.1 = 0
                     
-                    strongSelf.controllers[index].tabBarItemDebugTapAction?()
+                  //  strongSelf.controllers[index].tabBarItemDebugTapAction?()
                 }
                 
                 if let validLayout = strongSelf.validLayout {
