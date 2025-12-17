@@ -49,7 +49,12 @@ fragment float4 bubbleCapsule(
 )
 {
     float2 uv = in.uv;
+    float a = saturate(appear);
 
+    if (a <= 0.02) {
+        return float4(0.0, 0.0, 0.0, 0.0);
+    }
+    
     // ---------- aspect-correct space ----------
     float aspect = viewSize.x / viewSize.y;
     float2 p      = float2(uv.x * aspect, uv.y);
@@ -64,9 +69,8 @@ fragment float4 bubbleCapsule(
     float sy = 1.0 + 0.5 * abs(s);
 
     // ---------- APPEAR ANIM (scale + fade) ----------
-    float a = saturate(appear);
     float grow = smoothstep(0.0, 1.0, a);
-    float scale = mix(0.4, 1.0, grow);
+    float scale = grow;
 
     float2 boxSize = float2(baseSize.x * sx * scale,
                             baseSize.y * sy * scale);

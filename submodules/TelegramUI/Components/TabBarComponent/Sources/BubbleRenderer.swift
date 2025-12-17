@@ -210,6 +210,10 @@ final class BubbleRenderer {
         let step = diff * min(1, dt * speed)
         appear += step
         
+        if appear < 0.001 {
+            appear = 0
+        }
+        
         stretchVelocity += -stretch * stiffness * dt
         stretchVelocity *= damping
         stretch += stretchVelocity * dt
@@ -248,7 +252,6 @@ final class BubbleRenderer {
                                  length: MemoryLayout<SIMD2<Float>>.size,
                                  index: 6)
         
-        print("appear: \(appear)")
         var appearValue = appear
         encoder.setFragmentBytes(
             &appearValue,
