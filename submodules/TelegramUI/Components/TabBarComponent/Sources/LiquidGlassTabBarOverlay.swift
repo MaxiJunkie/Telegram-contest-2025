@@ -104,7 +104,10 @@ class LiquidGlassTabBarOverlay: UIView {
         case .began:
             let xPosition = currentSelectionFrame.midX + xOffset
             renderer.appearTarget = 1.0
-            renderer.setBackgroundTexture(from: backgroundViewForTexture)
+            renderer.setBackgroundTexture(
+                from: backgroundViewForTexture,
+                origin: CGPoint(x: xOffset, y: (bounds.height - backgroundViewForTexture.bounds.height) / 2)
+            )
             
             updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
 

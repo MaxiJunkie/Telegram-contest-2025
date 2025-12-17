@@ -101,7 +101,6 @@ fragment float4 bubbleCapsule(
     
     float gate = shapeMask * rimMask;
     if (gate <= 0.001) {
-        // вне пузыря – полностью прозрачный пиксель
         return float4(0.0, 0.0, 0.0, 0.0);
     }
 

@@ -122,15 +122,18 @@ final class BubbleRenderer {
     
     private var backgroundTexture: MTLTexture?
     
-    private func createTexture(from view: UIView) {
+    private func createTexture(from view: UIView, origin: CGPoint) {
+        let scale = UIScreen.main.scale
+        let metalViewSize = CGSize(width: renderSize.width / scale, height: renderSize.height / scale)
+        
         let format = UIGraphicsImageRendererFormat()
-        format.scale = UIScreen.main.scale
+        format.scale = scale
         format.opaque = false
         
-        let size = view.bounds.size
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        let renderer = UIGraphicsImageRenderer(size: metalViewSize, format: format)
 
         let image = renderer.image { ctx in
+            ctx.cgContext.translateBy(x: origin.x, y: origin.y)
             view.layer.render(in: ctx.cgContext)
         }
         
@@ -196,8 +199,8 @@ final class BubbleRenderer {
         backgroundTexture = tex
     }
     
-    func setBackgroundTexture(from view: UIView) {
-        self.createTexture(from: view)
+    func setBackgroundTexture(from view: UIView, origin: CGPoint) {
+        self.createTexture(from: view, origin: origin)
     }
     
     func draw(to drawable: CAMetalDrawable) {
