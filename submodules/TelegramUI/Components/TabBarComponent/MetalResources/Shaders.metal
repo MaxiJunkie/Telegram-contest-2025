@@ -39,12 +39,14 @@ vertex VertexOut bubbleVertex(uint vid [[vertex_id]],
 }
 
 fragment float4 bubbleCapsule(
-    VertexOut in [[stage_in]],
-    texture2d<float> background [[texture(0)]],
-    sampler sampler [[sampler(0)]],
-    constant float2 &viewSize   [[buffer(4)]],
-    constant float  &stretch    [[buffer(5)]],
-    constant float2 &bubbleCenter [[buffer(6)]])
+    VertexOut in                   [[stage_in]],
+    texture2d<float> background    [[texture(0)]],
+    sampler sampler                [[sampler(0)]],
+    constant float2 &viewSize      [[buffer(4)]],
+    constant float  &stretch       [[buffer(5)]],
+    constant float2 &bubbleCenter  [[buffer(6)]],
+    constant float  &appear        [[buffer(7)]]
+)
 {
     float2 uv = in.uv;
 
@@ -61,8 +63,14 @@ fragment float4 bubbleCapsule(
     float sx = 1.0 - abs(s) * 1.2;
     float sy = 1.0 + 0.5 * abs(s);
 
-    float2 boxSize = float2(baseSize.x * sx, baseSize.y * sy);
-    float  corner  = baseCorner * sy;
+    // ---------- APPEAR ANIM (scale + fade) ----------
+    float a = saturate(appear);
+    float grow = smoothstep(0.0, 1.0, a);
+    float scale = mix(0.4, 1.0, grow);
+
+    float2 boxSize = float2(baseSize.x * sx * scale,
+                            baseSize.y * sy * scale);
+    float  corner  = baseCorner * sy * scale;
 
     // ---------- SDF ----------
     float sdf  = smoothRectSDF(p, center, boxSize, corner, 2.15);
@@ -128,10 +136,12 @@ fragment float4 bubbleCapsule(
     // =====================================================
     
     float3 lens = mix(base, refracted, refMask);
-
     float3 glass = mix(lens, blurred, blurMask);
 
-    float3 final = mix(base, glass, shapeMask);
+    // fade-ин: на старте пузырь ещё маленький и прозрачный
+    float fade = smoothstep(0.0, 0.15, a);    // 0..1, первые ~15% пути
 
-    return float4(final, shapeMask);
+    float3 final = mix(base, glass, shapeMask * fade);
+
+    return float4(final, shapeMask * fade);
 }

@@ -75,23 +75,32 @@ class LiquidGlassTabBarOverlay: UIView {
                 device: device,
                 renderSize: drawableSize
             )
-            renderer?.setBackgroundTexture(from: backgroundViewForTexture)
+          //  renderer?.setBackgroundTexture(from: backgroundViewForTexture)
         }
     }
     
     func updateBubblePosition(_ recognizer: UIPanGestureRecognizer) {
-        let loc = recognizer.location(in: self)
-        let xPosition = Float(loc.x / self.bounds.width)
+        guard let renderer else { return }
         
-        print("xPosition \(xPosition)")
-        
-        renderer?.bubbleCenter.x = xPosition
-        
+        let location = recognizer.location(in: self)
         let velocity = recognizer.velocity(in: self)
         
-        let impulse = Float(velocity.x) * 0.00002
+        switch recognizer.state {
+         case .began:
+            renderer.appearTarget = 1.0
+            renderer.setBackgroundTexture(from: backgroundViewForTexture)
+            
+            updateCenterAndStretch(location: location, velocity: velocity)
 
-        renderer?.stretch += impulse
+         case .changed:
+            updateCenterAndStretch(location: location, velocity: velocity)
+
+         case .ended, .cancelled, .failed:
+             renderer.appearTarget = 0.0
+
+         default:
+             break
+         }
     }
     
     func update(
@@ -195,6 +204,16 @@ class LiquidGlassTabBarOverlay: UIView {
         guard let drawable = metalLayer?.nextDrawable() else { return }
         
         renderer?.draw(to: drawable)
+    }
+    
+    private func updateCenterAndStretch(location: CGPoint, velocity: CGPoint) {
+        let xPosition = Float(location.x / bounds.width)
+        
+        renderer?.bubbleCenter.x = xPosition
+        
+        let impulse = Float(velocity.x) * 0.00002
+
+        renderer?.stretch += impulse
     }
     
 }
