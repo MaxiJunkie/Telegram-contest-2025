@@ -88,6 +88,7 @@ public final class TabBarComponent: Component {
         private var component: TabBarComponent?
         private weak var state: EmptyComponentState?
         private var liquidGlassTabBarOverlay: LiquidGlassTabBarOverlay?
+        private var currentSelectionViewColor = UIColor(rgb: 0xe1edf9)
         
         public override init(frame: CGRect) {
             self.backgroundView = GlassBackgroundView()
@@ -125,12 +126,18 @@ public final class TabBarComponent: Component {
                 let color = UIColor(rgb: 0xe1edf9)
                 
                 liquidGlassTabBarOverlay.animationProgress = { [weak self] progress in
+                    guard let self else { return }
+                    
                     switch progress {
                     case let .dismissing(progress):
-                        self?.selectionView.tintColor = color.withAlphaComponent(CGFloat(progress))
+                        let currentSelectionViewColor = color.withAlphaComponent(CGFloat(progress))
+                        self.currentSelectionViewColor = currentSelectionViewColor
                     case let .showing(progress):
-                        self?.selectionView.tintColor = color.withAlphaComponent(CGFloat(progress))
+                        let currentSelectionViewColor = color.withAlphaComponent(CGFloat(progress))
+                        self.currentSelectionViewColor = currentSelectionViewColor
                     }
+                    
+                    self.selectionView.tintColor = currentSelectionViewColor
                 }
                 
                 let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(self.onPanGesture(_:)))
@@ -287,7 +294,48 @@ public final class TabBarComponent: Component {
         }
         
         @objc private func onPanGesture(_ recognizer: UIPanGestureRecognizer) {
-            liquidGlassTabBarOverlay?.updateBubblePosition(recognizer)
+            guard let component = self.component else {
+                return
+            }
+            
+            liquidGlassTabBarOverlay?.updateBubblePosition(recognizer, currentSelectionFrame: selectionView.frame)
+            
+            switch recognizer.state {
+            case .began:
+                break
+                
+            case .ended, .cancelled, .failed, .changed:
+                let point = recognizer.location(in: self)
+                var closestItemView: (AnyHashable, CGFloat)?
+                for (id, itemView) in self.itemViews {
+                    guard let itemView = itemView.view else {
+                        continue
+                    }
+                    let distance = abs(point.x - itemView.center.x)
+                    if let previousClosestItemView = closestItemView {
+                        if previousClosestItemView.1 > distance {
+                            closestItemView = (id, distance)
+                        }
+                    } else {
+                        closestItemView = (id, distance)
+                    }
+                }
+                
+                if let (id, _) = closestItemView {
+                    guard let item = component.items.first(where: { $0.id == id }) else {
+                        return
+                    }
+                    item.action(false)
+                    /*if previousSelectedIndex != closestNode.0 {
+                     if let selectedIndex = self.selectedIndex, let _ = self.tabBarItems[selectedIndex].item.animationName {
+                     container.imageNode.animationNode.play(firstFrame: false, fromIndex: nil)
+                     }
+                     }*/
+                }
+
+            default:
+                break
+            }
         }
         
         @objc private func onTapGesture(_ recognizer: UITapGestureRecognizer) {
@@ -417,7 +465,7 @@ public final class TabBarComponent: Component {
             if self.selectionView.image?.size.height != itemSize.height {
                 self.selectionView.image = generateStretchableFilledCircleImage(radius: itemSize.height * 0.5, color: .white)?.withRenderingMode(.alwaysTemplate)
             }
-            self.selectionView.tintColor = UIColor(rgb: 0xe1edf9)
+            self.selectionView.tintColor = currentSelectionViewColor
             
             var validIds: [AnyHashable] = []
             var selectionFrame: CGRect?

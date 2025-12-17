@@ -92,28 +92,31 @@ class LiquidGlassTabBarOverlay: UIView {
         }
     }
     
-    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer) {
+    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, currentSelectionFrame: CGRect) {
         guard let renderer else { return }
         
-        let location = recognizer.location(in: self)
         let velocity = recognizer.velocity(in: self)
         
         switch recognizer.state {
-         case .began:
+        case .began:
+            let xPosition = currentSelectionFrame.midX
             renderer.appearTarget = 1.0
             renderer.setBackgroundTexture(from: backgroundViewForTexture)
             
-            updateCenterAndStretch(location: location, velocity: velocity)
+            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
 
-         case .changed:
-            updateCenterAndStretch(location: location, velocity: velocity)
+        case .changed:
+            let location = recognizer.location(in: self)
+            updateCenterAndStretch(xPosition: location.x, velocity: velocity)
 
-         case .ended, .cancelled, .failed:
+        case .ended, .cancelled, .failed:
+            let xPosition = currentSelectionFrame.midX
+            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
             renderer.appearTarget = 0.0
 
-         default:
-             break
-         }
+        default:
+            break
+        }
     }
     
     func update(
@@ -228,8 +231,8 @@ class LiquidGlassTabBarOverlay: UIView {
         renderer.draw(to: drawable)
     }
     
-    private func updateCenterAndStretch(location: CGPoint, velocity: CGPoint) {
-        let xPosition = Float(location.x / bounds.width)
+    private func updateCenterAndStretch(xPosition: CGFloat, velocity: CGPoint) {
+        let xPosition = Float(xPosition / bounds.width)
         
         renderer?.bubbleCenter.x = xPosition
         
