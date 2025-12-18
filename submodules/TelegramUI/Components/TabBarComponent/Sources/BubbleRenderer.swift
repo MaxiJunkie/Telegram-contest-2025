@@ -133,6 +133,9 @@ final class BubbleRenderer {
         let renderer = UIGraphicsImageRenderer(size: metalViewSize, format: format)
 
         let image = renderer.image { ctx in
+            ctx.cgContext.setFillColor(UIColor.white.cgColor)
+            ctx.cgContext.fill(CGRect(origin: .zero, size: metalViewSize))
+            
             ctx.cgContext.translateBy(x: origin.x, y: origin.y)
             view.layer.render(in: ctx.cgContext)
         }
