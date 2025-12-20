@@ -42,6 +42,8 @@ class LiquidGlassTabBarOverlay: UIView {
     private var dragFingerOffsetX: CGFloat = 0
     private var lastFingerX: CGFloat = 0
     
+    private var lastTimestamp: CFTimeInterval = 0
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
@@ -242,8 +244,13 @@ class LiquidGlassTabBarOverlay: UIView {
     private func handleDisplayTick(displayLink: CADisplayLink) {
         guard let drawable = metalLayer?.nextDrawable(), let renderer else { return }
         
+        let dt: Float
+        if lastTimestamp == 0 { dt = 1.0 / 60.0 }
+        else { dt = Float(displayLink.timestamp - lastTimestamp) }
+        lastTimestamp = displayLink.timestamp
+        
         animationProgress?(1 - renderer.appear)
-        renderer.draw(to: drawable, dt: 1 / 60)
+        renderer.draw(to: drawable, dt: dt)
         
         switch renderer.appearTarget {
         case .dismissing:

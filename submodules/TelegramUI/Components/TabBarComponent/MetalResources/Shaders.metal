@@ -165,7 +165,6 @@ fragment float4 bubbleCapsule(
     float b = pow(mix(s1.b, s2.b, 0.9), 1.20);
 
     float3 baseRGB = float3(r, g, b);
-    float purpleAmount = 0.7 * refMask;
     
     float3 refractedChromatic = baseRGB;
     
