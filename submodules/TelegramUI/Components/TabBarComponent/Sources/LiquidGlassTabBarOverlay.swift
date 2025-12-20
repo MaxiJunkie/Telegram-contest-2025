@@ -44,6 +44,9 @@ class LiquidGlassTabBarOverlay: UIView {
     
     private var cachedComponent: TabBarComponent?
     
+    private var dragFingerOffsetX: CGFloat = 0
+    private var lastFingerX: CGFloat = 0
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
@@ -76,25 +79,31 @@ class LiquidGlassTabBarOverlay: UIView {
         
         let velocity = recognizer.velocity(in: self)
         let xOffset: CGFloat = (bounds.width - tabBarSourceSize.width) / 2
-        let initialXPosition = currentSelectionFrame.midX + xOffset
-        
+        let initialX = currentSelectionFrame.midX + xOffset
+
         switch recognizer.state {
         case .began:
             renderer.appearTarget = 1.0
-            updateCenterAndStretch(xPosition: initialXPosition, velocity: velocity)
+
+            let fingerXRaw = recognizer.location(in: self).x
+            dragFingerOffsetX = initialX - fingerXRaw
+
+            updateCenterAndStretch(xPosition: initialX, velocity: velocity)
 
         case .changed:
-            let location = recognizer.location(in: self)
-            let haldWidth = currentSelectionFrame.width / 2 + innerInset
-            let minX = haldWidth + xOffset
-            let maxX = tabBarSourceSize.width - haldWidth + xOffset
-            var newXPosition = min(max(location.x, minX), maxX)
-            
-            if renderer.bubbleIsAppearing {
-                newXPosition = initialXPosition
-            }
-            
-            updateCenterAndStretch(xPosition: newXPosition, velocity: velocity)
+            let fingerXRaw = recognizer.location(in: self).x
+            let targetXRaw = fingerXRaw + dragFingerOffsetX
+
+            let targetX = clampBubbleX(
+                targetXRaw,
+                currentSelectionFrame: currentSelectionFrame,
+                xOffset: xOffset
+            )
+
+            let follow = smoothstep(0.75, 0.98, renderer.appear)
+            let blendedX = initialX * (1 - follow) + targetX * follow
+
+            updateCenterAndStretch(xPosition: blendedX, velocity: velocity)
 
         case .ended, .cancelled, .failed:
             renderer.appearTarget = 0.0
@@ -225,6 +234,19 @@ class LiquidGlassTabBarOverlay: UIView {
         }
         
         renderer.draw(to: drawable)
+    }
+    
+    private func clampBubbleX(_ x: CGFloat, currentSelectionFrame: CGRect, xOffset: CGFloat) -> CGFloat {
+        let halfWidth = currentSelectionFrame.width / 2 + innerInset
+        let minX = halfWidth + xOffset
+        let maxX = tabBarSourceSize.width - halfWidth + xOffset
+        return min(max(x, minX), maxX)
+    }
+    
+    private func smoothstep(_ e0: Float, _ e1: Float, _ x: Float) -> CGFloat {
+        let t = max(0, min(1, (x - e0) / (e1 - e0)))
+        let s = t * t * (3 - 2 * t)
+        return CGFloat(s)
     }
     
     private func updateCenterAndStretch(xPosition: CGFloat, velocity: CGPoint) {
