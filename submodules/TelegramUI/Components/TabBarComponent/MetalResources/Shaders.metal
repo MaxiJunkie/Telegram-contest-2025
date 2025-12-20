@@ -129,9 +129,6 @@ fragment float4 bubbleCapsule(
     float innerMask = smoothstep(aa, 0.0, sdfInner);
 
     float rimMask = outerMask * (1.0 - innerMask);
-
-    shapeMask *= fade;
-    rimMask   *= fade;
     
     float gate = shapeMask * rimMask;
     
@@ -170,11 +167,7 @@ fragment float4 bubbleCapsule(
     float3 baseRGB = float3(r, g, b);
     float purpleAmount = 0.7 * refMask;
     
-    float3 refractedChromatic = mix(
-        baseRGB,
-        baseRGB,
-        purpleAmount
-    );
+    float3 refractedChromatic = baseRGB;
     
     float brightnessBoost = 0.10 * refMask;
     float3 refracted = refractedChromatic * (1.0 + brightnessBoost);

@@ -232,21 +232,18 @@ final class LiquidGlassTabBarRenderer {
         blit.generateMipmaps(for: tex)
         blit.endEncoding()
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
         
         backgroundTexture = tex
     }
     
     func setBackgroundTexture(from view: UIView, origin: CGPoint) {
-        self.createTexture(from: view, origin: origin)
+        createTexture(from: view, origin: origin)
     }
     
-    func draw(to drawable: CAMetalDrawable) {
+    func draw(to drawable: CAMetalDrawable, dt: Float) {
         guard let commandBuffer = commandQueue.makeCommandBuffer() else { return }
 
         guard let backgroundTexture else { return }
-        
-        let dt: Float = 1.0 / 60.0
         
         let speed: Float = switch appearTarget {
         case .showing:
@@ -287,7 +284,7 @@ final class LiquidGlassTabBarRenderer {
             followVelX *= followDamping
             bubbleCenter.x += followVelX * dt
             
-            if abs(target - bubbleCenter.x) < 0.01 {
+            if abs(target - bubbleCenter.x) < 0.0015 {
                 bubbleCenter.x = target
                 followVelX = 0
             }

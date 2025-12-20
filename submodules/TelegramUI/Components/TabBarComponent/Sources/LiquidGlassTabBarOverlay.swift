@@ -67,19 +67,21 @@ class LiquidGlassTabBarOverlay: UIView {
         displayLink.preferredFramesPerSecond = 60
         displayLink.add(to: .main, forMode: .common)
         self.displayLink = displayLink
+        self.displayLink?.isPaused = true
     }
     
-    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, currentSelectionFrame: CGRect) -> CGFloat {
+    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, selectionFrame: CGRect) -> CGFloat {
         guard let renderer else { return .zero }
         
         let velocity = recognizer.velocity(in: self)
         let xOffset: CGFloat = (bounds.width - tabBarSourceSize.width) / 2
-        let initialX = currentSelectionFrame.midX + xOffset
+        let initialX = selectionFrame.midX + xOffset
 
         switch recognizer.state {
         case .began:
             renderer.appearTarget = .showing(progress: 1)
-
+            displayLink?.isPaused = false
+            
             let fingerXRaw = recognizer.location(in: self).x
             dragFingerOffsetX = initialX - fingerXRaw
 
@@ -91,7 +93,7 @@ class LiquidGlassTabBarOverlay: UIView {
 
             let targetX = clampBubbleX(
                 targetXRaw,
-                currentSelectionFrame: currentSelectionFrame,
+                selectionFrame: selectionFrame,
                 xOffset: xOffset
             )
 
@@ -99,18 +101,29 @@ class LiquidGlassTabBarOverlay: UIView {
             let blendedX = initialX * (1 - follow) + targetX * follow
 
             updateCenterAndStretch(xPosition: blendedX, velocity: velocity)
-
-        case .ended, .cancelled, .failed:
-            let target = Float(initialX / bounds.width)
-            renderer.appearTarget = .dismissing(progress: 0, targetXPosition: target)
-            let impulse = Float(velocity.x) * 0.00002
-            renderer.stretch += impulse
             
         default:
             break
         }
         
         return CGFloat(renderer.bubbleCenter.x) * bounds.width - xOffset
+    }
+    
+    func updateBubbleFinalPosition(_ recognizer: UIPanGestureRecognizer, selectionFrame: CGRect) {
+        let velocity = recognizer.velocity(in: self)
+        let xOffset: CGFloat = (bounds.width - tabBarSourceSize.width) / 2
+        let initialX = selectionFrame.midX + xOffset
+
+        switch recognizer.state {
+        case .ended, .cancelled, .failed:
+            let target = Float(initialX / bounds.width)
+            renderer?.appearTarget = .dismissing(progress: 0, targetXPosition: target)
+            let impulse = Float(velocity.x) * 0.00002
+            renderer?.stretch += impulse
+            
+        default:
+            break
+        }
     }
     
     func update(
@@ -230,12 +243,21 @@ class LiquidGlassTabBarOverlay: UIView {
         guard let drawable = metalLayer?.nextDrawable(), let renderer else { return }
         
         animationProgress?(1 - renderer.appear)
+        renderer.draw(to: drawable, dt: 1 / 60)
         
-        renderer.draw(to: drawable)
+        switch renderer.appearTarget {
+        case .dismissing:
+            if !renderer.bubbleIsAppearing {
+                displayLink.isPaused = true
+            }
+            
+        case .showing:
+            return
+        }
     }
     
-    private func clampBubbleX(_ x: CGFloat, currentSelectionFrame: CGRect, xOffset: CGFloat) -> CGFloat {
-        let halfWidth = currentSelectionFrame.width / 2 + innerInset
+    private func clampBubbleX(_ x: CGFloat, selectionFrame: CGRect, xOffset: CGFloat) -> CGFloat {
+        let halfWidth = selectionFrame.width / 2 + innerInset
         let minX = halfWidth + xOffset
         let maxX = tabBarSourceSize.width - halfWidth + xOffset
         return min(max(x, minX), maxX)

@@ -294,7 +294,7 @@ public final class TabBarComponent: Component {
             
             let currentBubbleCenterX = liquidGlassTabBarOverlay.updateBubblePosition(
                 recognizer,
-                currentSelectionFrame: selectionView.frame
+                selectionFrame: selectionView.frame
             )
             
             switch recognizer.state {
@@ -310,14 +310,16 @@ public final class TabBarComponent: Component {
                     }
                     
                     let distance = abs(currentBubbleCenterX - itemView.center.x)
+                    let distanceWhenTabShouldBeInSelectedState = itemView.bounds.width / 2 - 6
+                    let distanceWhenTabShouldStartAnimating: CGFloat = 10
                     
-                    if distance <= itemView.bounds.width / 2 - 6 {
+                    if distance <= distanceWhenTabShouldBeInSelectedState {
                         itemView.updateSelectedState(isSelected: true)
                     } else {
                         itemView.updateSelectedState(isSelected: false)
                     }
                     
-                    if distance <= 10 {
+                    if distance <= distanceWhenTabShouldStartAnimating {
                         closestItemView = (id, distance)
                     }
                 }
@@ -349,6 +351,7 @@ public final class TabBarComponent: Component {
                     guard let item = component.items.first(where: { $0.id == id }) else {
                         return
                     }
+                    liquidGlassTabBarOverlay.updateBubbleFinalPosition(recognizer, selectionFrame: itemView.frame)
                     itemView.updateSelectedState(isSelected: true)
                     item.action(false)
                 }
