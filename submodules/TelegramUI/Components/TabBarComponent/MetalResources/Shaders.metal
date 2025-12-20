@@ -57,7 +57,7 @@ fragment float4 bubbleCapsule(
     }
 
     // ---------- APPEAR: fade + scale ----------
-    float fade = smoothstep(0.0, 0.6, a);
+    float fade = smoothstep(0.0, 1, a);
     float grow = smoothstep(0.25, 1.0, a);
     
     const float extraScale = 0.20;
@@ -198,5 +198,7 @@ fragment float4 bubbleCapsule(
 
     float mask = rimMask * shapeMask * fade;
     float3 final = mix(base, glass, mask);
-    return float4(final, 1);
+    float bubbleAlpha = a * rimMask;
+    
+    return float4(final * bubbleAlpha, bubbleAlpha);
 }

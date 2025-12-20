@@ -20,7 +20,7 @@ class LiquidGlassTabBarOverlay: UIView {
     }
     
     private enum Spec {
-        static var bubbleRelativeHeigth: CGFloat { 1.4 }
+        static var bubbleRelativeHeigth: CGFloat { 1.45 }
     }
     
     private var metalLayer: CAMetalLayer? {
@@ -97,10 +97,9 @@ class LiquidGlassTabBarOverlay: UIView {
             updateCenterAndStretch(xPosition: newXPosition, velocity: velocity)
 
         case .ended, .cancelled, .failed:
-            break
-          //  let xPosition = currentSelectionFrame.midX + xOffset
-          //  updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
-          //  renderer.appearTarget = 0.0
+            renderer.appearTarget = 0.0
+            let xPosition = currentSelectionFrame.midX + xOffset
+            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
 
         default:
             break
@@ -213,8 +212,6 @@ class LiquidGlassTabBarOverlay: UIView {
         metalLayer.framebufferOnly = false
         metalLayer.isOpaque = false
         metalLayer.backgroundColor = UIColor.clear.cgColor
-        
-        backgroundColor = .clear
     }
     
     @objc
