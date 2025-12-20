@@ -35,13 +35,14 @@ class LiquidGlassTabBarOverlay: UIView {
     
     private var displayLink: CADisplayLink?
     
-    private let backgroundViewForTexture = GlassBackgroundView()
+    private var renderer: LiquidGlassTabBarRenderer?
     
-    private var renderer: BubbleRenderer?
+    private var selectionViewSize: CGSize = .zero
+    private var tabBarSourceSize: CGSize = .zero
     
-    private var bubbleViewSize: CGSize = .zero
+    private let innerInset: CGFloat = 3.0
     
-    private var backgroundViewDidLayout = false
+    private var cachedComponent: TabBarComponent?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -70,53 +71,30 @@ class LiquidGlassTabBarOverlay: UIView {
         self.displayLink = displayLink
     }
     
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        
-        let scale = UIScreen.main.scale
-        let drawableSize = CGSize(
-            width: bounds.width * scale,
-            height: bounds.height * scale
-        )
-         
-        metalLayer?.drawableSize = drawableSize
-        
-        if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
-            renderer = BubbleRenderer(
-                device: device,
-                renderSize: drawableSize
-            )
-            
-            renderer?.bubbleViewSize = CGSize(
-                width: bubbleViewSize.width * scale,
-                height: bubbleViewSize.height * scale
-            )
-        }
-    }
-    
     func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, currentSelectionFrame: CGRect) {
         guard let renderer else { return }
         
         let velocity = recognizer.velocity(in: self)
-        let xOffset: CGFloat = (bounds.width - backgroundViewForTexture.bounds.width) / 2
+        let xOffset: CGFloat = (bounds.width - tabBarSourceSize.width) / 2
+        let initialXPosition = currentSelectionFrame.midX + xOffset
         
         switch recognizer.state {
         case .began:
-            let xPosition = currentSelectionFrame.midX + xOffset
             renderer.appearTarget = 1.0
-            renderer.setBackgroundTexture(
-                from: backgroundViewForTexture,
-                origin: CGPoint(x: xOffset, y: (bounds.height - backgroundViewForTexture.bounds.height) / 2)
-            )
-            
-            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
+            updateCenterAndStretch(xPosition: initialXPosition, velocity: velocity)
 
         case .changed:
             let location = recognizer.location(in: self)
-            let haldWidth = currentSelectionFrame.width / 2 + 5
+            let haldWidth = currentSelectionFrame.width / 2 + innerInset
             let minX = haldWidth + xOffset
-            let maxX = backgroundViewForTexture.bounds.width - haldWidth + xOffset
-            updateCenterAndStretch(xPosition: min(max(location.x, minX), maxX), velocity: velocity)
+            let maxX = tabBarSourceSize.width - haldWidth + xOffset
+            var newXPosition = min(max(location.x, minX), maxX)
+            
+            if renderer.bubbleIsAppearing {
+                newXPosition = initialXPosition
+            }
+            
+            updateCenterAndStretch(xPosition: newXPosition, velocity: velocity)
 
         case .ended, .cancelled, .failed:
             break
@@ -135,12 +113,11 @@ class LiquidGlassTabBarOverlay: UIView {
         transition: ComponentTransition,
         selectionFrame: CGRect
     ) {
-        self.bubbleViewSize = selectionFrame.size
+        self.selectionViewSize = selectionFrame.size
         
-        guard !backgroundViewDidLayout else { return }
-        backgroundViewDidLayout = true
-        
-        let innerInset: CGFloat = 3.0
+        if let cachedComponent, cachedComponent == component {
+            return
+        }
         
         let availableSize = CGSize(width: min(500.0, availableSize.width), height: availableSize.height)
         
@@ -150,12 +127,10 @@ class LiquidGlassTabBarOverlay: UIView {
         let contentHeight = itemSize.height + innerInset * 2.0
         var contentWidth: CGFloat = innerInset
         
-        var validIds: [AnyHashable] = []
+        let backgroundViewForTexture = GlassBackgroundView()
         
         for index in 0 ..< component.items.count {
             let item = component.items[index]
-            validIds.append(item.id)
-            
             let itemTransition = transition
             let selectedItemView: ComponentView<ComponentFlow.Empty> = ComponentView()
             
@@ -172,8 +147,7 @@ class LiquidGlassTabBarOverlay: UIView {
             
             let itemFrame = CGRect(origin: CGPoint(x: contentWidth, y: floor((contentHeight - itemSize.height) * 0.5)), size: itemSize)
             if let selectedItemComponentView = selectedItemView.view as? ItemComponent.View {
-                self.backgroundViewForTexture.addSubview(selectedItemComponentView)
-                
+                backgroundViewForTexture.addSubview(selectedItemComponentView)
                 itemTransition.setFrame(view: selectedItemComponentView, frame: itemFrame)
             }
             
@@ -182,9 +156,10 @@ class LiquidGlassTabBarOverlay: UIView {
         contentWidth += innerInset
         
         let size = CGSize(width: min(availableSize.width, contentWidth), height: contentHeight)
+        tabBarSourceSize = size
         
         transition.setFrame(view: backgroundViewForTexture, frame: CGRect(origin: CGPoint(), size: size))
-        self.backgroundViewForTexture.update(
+        backgroundViewForTexture.update(
             size: size,
             cornerRadius: size.height * 0.5,
             isDark: component.theme.overallDarkAppearance,
@@ -194,11 +169,39 @@ class LiquidGlassTabBarOverlay: UIView {
             transition: transition
         )
         
-        let bubbleHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
+        let metalViewHeight: CGFloat = size.height * Spec.bubbleRelativeHeigth
         let xOffset: CGFloat = (UIScreen.main.bounds.width - size.width) / 2
-        let origin = CGPoint(x: -xOffset, y: (size.height - bubbleHeight) / 2)
-        let width = size.width + 2 * xOffset
-        transition.setFrame(view: self, frame: CGRect(origin: origin, size: CGSize(width: width, height: bubbleHeight)))
+        let metalViewWidth = size.width + 2 * xOffset
+        transition.setFrame(
+            view: self,
+            frame: CGRect(
+                origin: CGPoint(x: -xOffset, y: (size.height - metalViewHeight) / 2),
+                size: CGSize(width: metalViewWidth, height: metalViewHeight)
+            )
+        )
+        
+        if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
+            let scale = UIScreen.main.scale
+            let drawableSize = CGSize(
+                width: bounds.width * scale,
+                height: bounds.height * scale
+            )
+            self.metalLayer?.drawableSize = drawableSize
+            renderer = LiquidGlassTabBarRenderer(
+                device: device,
+                renderSize: drawableSize
+            )
+            
+            renderer?.bubbleViewSize = CGSize(
+                width: selectionViewSize.width * scale,
+                height: selectionViewSize.height * scale
+            )
+        }
+        
+        renderer?.setBackgroundTexture(
+            from: backgroundViewForTexture,
+            origin: CGPoint(x: xOffset, y: (metalViewHeight - size.height) / 2)
+        )
     }
     
     private func commonInit() {

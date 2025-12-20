@@ -7,12 +7,16 @@ struct Vertex {
     var uv: SIMD2<Float>
 }
 
-final class BubbleRenderer {
+final class LiquidGlassTabBarRenderer {
     private let device: MTLDevice
     private let pipeline: MTLRenderPipelineState
     private let commandQueue: MTLCommandQueue
 
-    private var vertexBuffer: MTLBuffer!
+    private var vertexBuffer: MTLBuffer?
+    
+    var bubbleIsAppearing: Bool {
+        return appear > 0.001 && appear < 0.999
+    }
     
     var bubbleCenter: SIMD2<Float>
     
@@ -41,7 +45,7 @@ final class BubbleRenderer {
         guard let queue = device.makeCommandQueue() else { return nil }
         commandQueue = queue
 
-        let mainBundle = Bundle(for: BubbleRenderer.self)
+        let mainBundle = Bundle(for: LiquidGlassTabBarRenderer.self)
         
         guard let path = mainBundle.path(forResource: "TabBarComponentBundle", ofType: "bundle") else {
             return nil
@@ -213,11 +217,11 @@ final class BubbleRenderer {
         
         let dt: Float = 1.0 / 60.0
         
-        let speed: Float = 7.0   // чем больше, тем быстрее анимация (~0.1–0.2 c)
+        let speed: Float = 6.0   // чем больше, тем быстрее анимация (~0.1–0.2 c)
         let diff = appearTarget - appear
         let step = diff * min(1, dt * speed)
         
-        if appear < 0.001 {
+        if appear <= 0.001 {
             appear = 0
         }
         
