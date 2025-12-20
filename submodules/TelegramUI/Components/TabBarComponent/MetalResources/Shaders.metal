@@ -59,8 +59,7 @@ fragment float4 bubbleCapsule(
     // ---------- APPEAR: fade + scale ----------
     float fade = smoothstep(0.0, 0.6, a);
     float grow = smoothstep(0.25, 1.0, a);
-
-    // +20% к размеру в максимальном состоянии
+    
     const float extraScale = 0.20;
     float scale = 1.0 + extraScale * grow;
 
@@ -71,9 +70,8 @@ fragment float4 bubbleCapsule(
 
     // ---------- capsule geometry ----------
     float ratio  = bubbleViewSize.x / bubbleViewSize.y;
-    float height = bubbleViewSize.y / viewSize.y;   // нормализованная высота
-
-    // baseSize = тот самый "исходный" размер
+    float height = bubbleViewSize.y / viewSize.y;
+    
     float2 baseSize   = float2(height * ratio, height);
     float  baseCorner = baseSize.y * 0.5;
 
@@ -91,15 +89,52 @@ fragment float4 bubbleCapsule(
     
     // ---------- masks ----------
     float shapeMask = 1.0 - smoothstep(0.0, 0.028, sdf);
+    
+    const float topFracFull    = 0.30;
+    const float bottomFracFull = 0.20;
+    
+    const float sideFracFull = 0.30;
+    
+    float fullH = 2.0 * boxSize.y;
+    float fullW = 2.0 * boxSize.x;
+    
+    float topOffset    = topFracFull    * fullH;
+    float bottomOffset = bottomFracFull * fullH;
 
-    float rimOuter = 0.09;
-    float rimInner = 0.02;
-    float rimMask  = smoothstep(rimOuter, rimInner, absS);
+    float outerTop    = center.y + boxSize.y;
+    float outerBottom = center.y - boxSize.y;
+    
+    float innerTop    = outerTop    - topOffset;
+    float innerBottom = outerBottom + bottomOffset;
+    
+    float innerHalfH   = 0.5 * (innerTop - innerBottom);
+    innerHalfH = max(innerHalfH, 0.05 * fullH);
+
+    float innerCenterY = 0.5 * (innerTop + innerBottom);
+    float2 innerCenter = float2(center.x, innerCenterY);
+
+    float innerHalfW = boxSize.x - sideFracFull * fullW;
+    innerHalfW = max(innerHalfW, 0.05 * fullW);
+
+    float2 innerBoxSize = float2(innerHalfW, innerHalfH);
+
+    float heightScale = innerHalfH / boxSize.y;
+    float innerCorner = corner * heightScale;
+
+    float sdfInner = smoothRectSDF(p, innerCenter, innerBoxSize, innerCorner, 2.15);
+
+    float aa = max(fwidth(sdf), 0.0015);
+
+    float outerMask = smoothstep(aa, 0.0, sdf);
+    float innerMask = smoothstep(aa, 0.0, sdfInner);
+
+    float rimMask = outerMask * (1.0 - innerMask);
 
     shapeMask *= fade;
     rimMask   *= fade;
     
     float gate = shapeMask * rimMask;
+    
     if (gate <= 0.001) {
         return float4(0.0, 0.0, 0.0, 0.0);
     }
@@ -110,50 +145,58 @@ fragment float4 bubbleCapsule(
     float2 grad = float2(dfdx(sdf), dfdy(sdf));
     float2 n    = normalize(grad + 1e-6);
     
-    float thickness = 0.2;
-    float t = saturate(absS / thickness);
-    float refMask  = smoothstep(0.6, 0.0, t);
+    float depth = saturate(absS / 0.2);
+    float refMask = pow(1.0 - depth, 1.2);
 
     // =====================================================
     //                 REFRACTION
     // =====================================================
     
-    float blurOuter = smoothstep(0.6, 0.0, absS);
-    float refBase = 0.08;
-    float refMax  = 0.65;
-    float refStrength = refBase + refMax * blurOuter;
-    float2 offset = n * refStrength * 0.2;
+    float refBase = 0.10;
+    float refMax  = 0.70;
+    float refStrength = refBase + refMax * refMask;
     
-    float chroma = 0.20 * blurOuter;
+    float2 offset = n * refStrength * 0.035;
+
+    float chroma = 0.35 * refMask;
 
     float3 s1 = background.sample(sampler, uv - offset * (1.0 + chroma)).rgb;
     float3 s2 = background.sample(sampler, uv - offset * (1.0 - chroma)).rgb;
 
-    float3 refractedChromatic = float3(
-        s1.r,
-        mix(s1.g, s2.g, 0.55),
-        s2.b * 1.12
+    float r = mix(s1.r, s2.r, 0.7);
+    float g = mix(s1.g, s2.g, 0.10);
+    float b = pow(mix(s1.b, s2.b, 0.9), 1.20);
+
+    float3 baseRGB = float3(r, g, b);
+    float purpleAmount = 0.7 * refMask;
+    
+    float3 refractedChromatic = mix(
+        baseRGB,
+        baseRGB,
+        purpleAmount
     );
     
-    float3 refracted = refractedChromatic;
+    float brightnessBoost = 0.10 * refMask;
+    float3 refracted = refractedChromatic * (1.0 + brightnessBoost);
     
     // =====================================================
     //                 MIPMAP BLUR
     // =====================================================
     
-    float blurMask = smoothstep(1, 0.0, t);
-    float blurLOD = mix(0.0, 4, blurMask);
+    float thickness = 0.5;
+    float t = saturate(absS / thickness);
+    float blurMask = smoothstep(0.5, 0.0, t);
+    float blurLOD = mix(0.0, 7, blurMask);
     float3 blurred = background.sample(sampler, uv, level(blurLOD)).rgb;
 
     // =====================================================
     //                 COMPOSITION
     // =====================================================
     
-    float3 lens  = mix(base, refracted, refMask);
+    float3 lens  = mix(base, refracted, refMask * 2);
     float3 glass = mix(lens, blurred, blurMask);
 
-    // здесь fade уже посчитан в начале и не нужно считать его второй раз
-    float3 final = mix(base, glass, shapeMask * fade);
-
-    return float4(final, shapeMask * fade);
+    float mask = rimMask * shapeMask * fade;
+    float3 final = mix(base, glass, mask);
+    return float4(final, 1);
 }

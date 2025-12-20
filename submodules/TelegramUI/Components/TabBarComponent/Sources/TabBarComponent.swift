@@ -294,9 +294,9 @@ public final class TabBarComponent: Component {
         }
         
         @objc private func onPanGesture(_ recognizer: UIPanGestureRecognizer) {
-            guard let component = self.component else {
-                return
-            }
+//            guard let component = self.component else {
+//                return
+//            }
             
             liquidGlassTabBarOverlay?.updateBubblePosition(recognizer, currentSelectionFrame: selectionView.frame)
             
@@ -305,33 +305,34 @@ public final class TabBarComponent: Component {
                 break
                 
             case .ended, .cancelled, .failed, .changed:
-                let point = recognizer.location(in: self)
-                var closestItemView: (AnyHashable, CGFloat)?
-                for (id, itemView) in self.itemViews {
-                    guard let itemView = itemView.view else {
-                        continue
-                    }
-                    let distance = abs(point.x - itemView.center.x)
-                    if let previousClosestItemView = closestItemView {
-                        if previousClosestItemView.1 > distance {
-                            closestItemView = (id, distance)
-                        }
-                    } else {
-                        closestItemView = (id, distance)
-                    }
-                }
-                
-                if let (id, _) = closestItemView {
-                    guard let item = component.items.first(where: { $0.id == id }) else {
-                        return
-                    }
-                    item.action(false)
-                    /*if previousSelectedIndex != closestNode.0 {
-                     if let selectedIndex = self.selectedIndex, let _ = self.tabBarItems[selectedIndex].item.animationName {
-                     container.imageNode.animationNode.play(firstFrame: false, fromIndex: nil)
-                     }
-                     }*/
-                }
+                break
+//                let point = recognizer.location(in: self)
+//                var closestItemView: (AnyHashable, CGFloat)?
+//                for (id, itemView) in self.itemViews {
+//                    guard let itemView = itemView.view else {
+//                        continue
+//                    }
+//                    let distance = abs(point.x - itemView.center.x)
+//                    if let previousClosestItemView = closestItemView {
+//                        if previousClosestItemView.1 > distance {
+//                            closestItemView = (id, distance)
+//                        }
+//                    } else {
+//                        closestItemView = (id, distance)
+//                    }
+//                }
+//                
+//                if let (id, _) = closestItemView {
+//                    guard let item = component.items.first(where: { $0.id == id }) else {
+//                        return
+//                    }
+//                    item.action(false)
+//                    /*if previousSelectedIndex != closestNode.0 {
+//                     if let selectedIndex = self.selectedIndex, let _ = self.tabBarItems[selectedIndex].item.animationName {
+//                     container.imageNode.animationNode.play(firstFrame: false, fromIndex: nil)
+//                     }
+//                     }*/
+//                }
 
             default:
                 break

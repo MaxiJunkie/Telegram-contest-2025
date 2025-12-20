@@ -119,9 +119,10 @@ class LiquidGlassTabBarOverlay: UIView {
             updateCenterAndStretch(xPosition: min(max(location.x, minX), maxX), velocity: velocity)
 
         case .ended, .cancelled, .failed:
-            let xPosition = currentSelectionFrame.midX + xOffset
-            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
-            renderer.appearTarget = 0.0
+            break
+          //  let xPosition = currentSelectionFrame.midX + xOffset
+          //  updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
+          //  renderer.appearTarget = 0.0
 
         default:
             break
