@@ -294,45 +294,57 @@ public final class TabBarComponent: Component {
         }
         
         @objc private func onPanGesture(_ recognizer: UIPanGestureRecognizer) {
-//            guard let component = self.component else {
-//                return
-//            }
+            guard let component, let liquidGlassTabBarOverlay else {
+                return
+            }
             
-            liquidGlassTabBarOverlay?.updateBubblePosition(recognizer, currentSelectionFrame: selectionView.frame)
+            let currentBubbleCenterX = liquidGlassTabBarOverlay.updateBubblePosition(
+                recognizer,
+                currentSelectionFrame: selectionView.frame
+            )
+            
+            if recognizer.state == .changed {
+                for (_, itemView) in self.itemViews {
+                    guard let itemView = itemView.view as? ItemComponent.View else {
+                        continue
+                    }
+                    
+                    let distance = abs(currentBubbleCenterX - itemView.center.x)
+                    
+                    if distance <= itemView.bounds.width / 2 - 10 {
+                        itemView.updateSelectedState(isSelected: true)
+                    } else {
+                        itemView.updateSelectedState(isSelected: false)
+                    }
+                }
+            }
             
             switch recognizer.state {
             case .began:
                 break
                 
             case .ended, .cancelled, .failed, .changed:
-                break
-//                let point = recognizer.location(in: self)
-//                var closestItemView: (AnyHashable, CGFloat)?
-//                for (id, itemView) in self.itemViews {
-//                    guard let itemView = itemView.view else {
-//                        continue
-//                    }
-//                    let distance = abs(point.x - itemView.center.x)
-//                    if let previousClosestItemView = closestItemView {
-//                        if previousClosestItemView.1 > distance {
-//                            closestItemView = (id, distance)
-//                        }
-//                    } else {
-//                        closestItemView = (id, distance)
-//                    }
-//                }
-//                
-//                if let (id, _) = closestItemView {
-//                    guard let item = component.items.first(where: { $0.id == id }) else {
-//                        return
-//                    }
-//                    item.action(false)
-//                    /*if previousSelectedIndex != closestNode.0 {
-//                     if let selectedIndex = self.selectedIndex, let _ = self.tabBarItems[selectedIndex].item.animationName {
-//                     container.imageNode.animationNode.play(firstFrame: false, fromIndex: nil)
-//                     }
-//                     }*/
-//                }
+                var closestItemView: (AnyHashable, CGFloat)?
+                
+                for (id, itemView) in self.itemViews {
+                    guard let itemView = itemView.view else {
+                        continue
+                    }
+                    
+                    let distance = abs(currentBubbleCenterX - itemView.center.x)
+                    
+                    if distance <= 5 {
+                        closestItemView = (id, distance)
+                        break
+                    }
+                }
+                
+                if let (id, _) = closestItemView {
+                    guard let item = component.items.first(where: { $0.id == id }) else {
+                        return
+                    }
+                    item.action(false)
+                }
 
             default:
                 break
@@ -649,6 +661,7 @@ final class ItemComponent: Component {
         private var setImageListener: Int?
         private var setSelectedImageListener: Int?
         private var setBadgeListener: Int?
+        private var availableSize: CGSize = .zero
         
         override init(frame: CGRect) {
             self.contextContainerView = ContextExtractedContentContainingView()
@@ -679,6 +692,38 @@ final class ItemComponent: Component {
         func playSelectionAnimation() {
             if let animationIconView = self.animationIcon?.view as? LottieComponent.View {
                 animationIconView.playOnce()
+            }
+        }
+        
+        func updateSelectedState(isSelected: Bool) {
+            if let animationIcon = self.animationIcon,
+               let component,
+               let animationName = component.item.item.animationName
+            {
+                _ = animationIcon.update(
+                    transition: .init(animation: .none),
+                    component: AnyComponent(LottieComponent(
+                        content: LottieComponent.AppBundleContent(
+                            name: animationName
+                        ),
+                        color: isSelected ? component.theme.rootController.tabBar.selectedTextColor : component.theme.rootController.tabBar.textColor,
+                        placeholderColor: nil,
+                        startingPosition: .end,
+                        size: CGSize(width: 48.0, height: 48.0),
+                        loop: false
+                    )),
+                    environment: {},
+                    containerSize: CGSize(width: 48.0, height: 48.0)
+                )
+                
+                _ = self.title.update(
+                    transition: .immediate,
+                    component: AnyComponent(MultilineTextComponent(
+                        text: .plain(NSAttributedString(string: component.item.item.title ?? " ", font: Font.semibold(10.0), textColor: isSelected ? component.theme.rootController.tabBar.selectedTextColor : component.theme.rootController.tabBar.textColor))
+                    )),
+                    environment: {},
+                    containerSize: CGSize(width: availableSize.width, height: 100.0)
+                )
             }
         }
         
@@ -854,6 +899,7 @@ final class ItemComponent: Component {
             transition.setFrame(view: self.contextContainerView.contentView, frame: CGRect(origin: CGPoint(), size: availableSize))
             self.contextContainerView.contentRect = CGRect(origin: CGPoint(), size: availableSize)
             
+            self.availableSize = availableSize
             return availableSize
         }
     }

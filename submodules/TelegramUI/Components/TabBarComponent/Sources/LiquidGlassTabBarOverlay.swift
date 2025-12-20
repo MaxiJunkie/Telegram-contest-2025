@@ -74,8 +74,8 @@ class LiquidGlassTabBarOverlay: UIView {
         self.displayLink = displayLink
     }
     
-    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, currentSelectionFrame: CGRect) {
-        guard let renderer else { return }
+    func updateBubblePosition(_ recognizer: UIPanGestureRecognizer, currentSelectionFrame: CGRect) -> CGFloat {
+        guard let renderer else { return .zero }
         
         let velocity = recognizer.velocity(in: self)
         let xOffset: CGFloat = (bounds.width - tabBarSourceSize.width) / 2
@@ -113,6 +113,8 @@ class LiquidGlassTabBarOverlay: UIView {
         default:
             break
         }
+        
+        return CGFloat(renderer.bubbleCenter.x) * bounds.width - xOffset
     }
     
     func update(
@@ -123,10 +125,14 @@ class LiquidGlassTabBarOverlay: UIView {
     ) {
         self.selectionViewSize = selectionFrame.size
         
-        if let cachedComponent, cachedComponent == component {
+        let badgeItems = component.items.map { $0.item.badgeValue }
+        let cachedBadgeItems = cachedComponent?.items.map { $0.item.badgeValue } ?? []
+        
+        if cachedComponent != nil, cachedBadgeItems == badgeItems {
             return
         }
         
+        self.cachedComponent = component
         let availableSize = CGSize(width: min(500.0, availableSize.width), height: availableSize.height)
         
         var itemSize = CGSize(width: floor((availableSize.width - innerInset * 2.0) / CGFloat(component.items.count)), height: 56.0)

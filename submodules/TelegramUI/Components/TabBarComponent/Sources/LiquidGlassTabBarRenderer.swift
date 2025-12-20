@@ -230,7 +230,7 @@ final class LiquidGlassTabBarRenderer {
         
         let dt: Float = 1.0 / 60.0
         
-        let speed: Float = 6.0
+        let speed: Float = 4.0
         let diff = appearTarget - appear
         let step = diff * min(1, dt * speed)
         
