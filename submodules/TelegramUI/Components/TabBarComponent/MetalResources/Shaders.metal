@@ -60,7 +60,7 @@ fragment float4 bubbleCapsule(
     float fade = smoothstep(0.0, 1, a);
     float grow = smoothstep(0.7, 1.0, a);
     
-    const float extraScale = 0.25;
+    const float extraScale = 0.3;
     float scale = 1.0 + extraScale * grow;
 
     // ---------- aspect-correct space ----------

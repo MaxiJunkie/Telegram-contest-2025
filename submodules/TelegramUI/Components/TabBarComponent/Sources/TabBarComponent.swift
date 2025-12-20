@@ -128,14 +128,8 @@ public final class TabBarComponent: Component {
                 liquidGlassTabBarOverlay.animationProgress = { [weak self] progress in
                     guard let self else { return }
                     
-                    switch progress {
-                    case let .dismissing(progress):
-                        let currentSelectionViewColor = color.withAlphaComponent(CGFloat(progress))
-                        self.currentSelectionViewColor = currentSelectionViewColor
-                    case let .showing(progress):
-                        let currentSelectionViewColor = color.withAlphaComponent(CGFloat(progress))
-                        self.currentSelectionViewColor = currentSelectionViewColor
-                    }
+                    let currentSelectionViewColor = color.withAlphaComponent(CGFloat(progress))
+                    self.currentSelectionViewColor = currentSelectionViewColor
                     
                     self.selectionView.tintColor = currentSelectionViewColor
                 }
@@ -303,39 +297,28 @@ public final class TabBarComponent: Component {
                 currentSelectionFrame: selectionView.frame
             )
             
-            if recognizer.state == .changed {
-                for (_, itemView) in self.itemViews {
+            switch recognizer.state {
+            case .began:
+                break
+                
+            case .changed:
+                var closestItemView: (AnyHashable, CGFloat)?
+                
+                for (id, itemView) in self.itemViews {
                     guard let itemView = itemView.view as? ItemComponent.View else {
                         continue
                     }
                     
                     let distance = abs(currentBubbleCenterX - itemView.center.x)
                     
-                    if distance <= itemView.bounds.width / 2 - 10 {
+                    if distance <= itemView.bounds.width / 2 - 6 {
                         itemView.updateSelectedState(isSelected: true)
                     } else {
                         itemView.updateSelectedState(isSelected: false)
                     }
-                }
-            }
-            
-            switch recognizer.state {
-            case .began:
-                break
-                
-            case .ended, .cancelled, .failed, .changed:
-                var closestItemView: (AnyHashable, CGFloat)?
-                
-                for (id, itemView) in self.itemViews {
-                    guard let itemView = itemView.view else {
-                        continue
-                    }
                     
-                    let distance = abs(currentBubbleCenterX - itemView.center.x)
-                    
-                    if distance <= 5 {
+                    if distance <= 10 {
                         closestItemView = (id, distance)
-                        break
                     }
                 }
                 
@@ -346,6 +329,30 @@ public final class TabBarComponent: Component {
                     item.action(false)
                 }
 
+            case .ended, .cancelled, .failed:
+                var closestItemView: (AnyHashable, CGFloat, ItemComponent.View)?
+                for (id, itemView) in self.itemViews {
+                    guard let itemView = itemView.view as? ItemComponent.View else {
+                        continue
+                    }
+                    let distance = abs(currentBubbleCenterX - itemView.center.x)
+                    if let previousClosestItemView = closestItemView {
+                        if previousClosestItemView.1 > distance {
+                            closestItemView = (id, distance, itemView)
+                        }
+                    } else {
+                        closestItemView = (id, distance, itemView)
+                    }
+                }
+                
+                if let (id, _, itemView) = closestItemView {
+                    guard let item = component.items.first(where: { $0.id == id }) else {
+                        return
+                    }
+                    itemView.updateSelectedState(isSelected: true)
+                    item.action(false)
+                }
+                
             default:
                 break
             }

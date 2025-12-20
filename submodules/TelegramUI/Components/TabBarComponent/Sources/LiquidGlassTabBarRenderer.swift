@@ -8,6 +8,20 @@ struct Vertex {
 }
 
 final class LiquidGlassTabBarRenderer {
+    enum AppearingState {
+        case showing(progress: Float)
+        case dismissing(progress: Float, targetXPosition: Float)
+        
+        var progress: Float {
+            switch self {
+            case .showing(let progress):
+                progress
+            case .dismissing(let progress, _):
+                progress
+            }
+        }
+    }
+    
     private let device: MTLDevice
     private let pipeline: MTLRenderPipelineState
     private let commandQueue: MTLCommandQueue
@@ -22,7 +36,7 @@ final class LiquidGlassTabBarRenderer {
     
     var stretch: Float = 0
     
-    var appearTarget: Float = 0
+    var appearTarget: AppearingState = .dismissing(progress: 0, targetXPosition: 0)
     
     var bubbleViewSize: CGSize = .zero
     
@@ -30,7 +44,11 @@ final class LiquidGlassTabBarRenderer {
     
     private var stretchVelocity: Float = 0
     private let stiffness: Float = 25
-    private let damping : Float = 0.9
+    private let damping: Float = 0.9
+    
+    private var followVelX: Float = 0
+    private let followStiffness: Float = 50
+    private let followDamping: Float = 0.9
     
     private var sampler: MTLSamplerState?
     private var msaaTexture: MTLTexture?
@@ -230,8 +248,14 @@ final class LiquidGlassTabBarRenderer {
         
         let dt: Float = 1.0 / 60.0
         
-        let speed: Float = 4.0
-        let diff = appearTarget - appear
+        let speed: Float = switch appearTarget {
+        case .showing:
+            4
+        case .dismissing:
+            2
+        }
+        
+        let diff = appearTarget.progress - appear
         let step = diff * min(1, dt * speed)
         
         if appear <= 0.001 {
@@ -250,6 +274,26 @@ final class LiquidGlassTabBarRenderer {
         
         let maxStretch: Float = 0.35
         stretch = max(-maxStretch, min(maxStretch, stretch))
+        
+        switch appearTarget {
+        case .showing:
+            followVelX = 0
+
+        case .dismissing(_, let targetXPosition):
+            let target = targetXPosition
+            let x = bubbleCenter.x
+            
+            followVelX += (target - x) * followStiffness * dt
+            followVelX *= followDamping
+            bubbleCenter.x += followVelX * dt
+            
+            if abs(target - bubbleCenter.x) < 0.01 {
+                bubbleCenter.x = target
+                followVelX = 0
+            }
+
+            bubbleCenter.x = min(max(bubbleCenter.x, 0), 1)
+        }
         
         let renderPass = MTLRenderPassDescriptor()
         renderPass.colorAttachments[0].texture = msaaTexture

@@ -14,11 +14,6 @@ import TextBadgeComponent
 
 class LiquidGlassTabBarOverlay: UIView {
     
-    enum AnimationProgress {
-        case showing(progress: Float)
-        case dismissing(progress: Float)
-    }
-    
     private enum Spec {
         static var bubbleRelativeHeigth: CGFloat { 1.45 }
     }
@@ -31,7 +26,7 @@ class LiquidGlassTabBarOverlay: UIView {
         return CAMetalLayer.self
     }
     
-    var animationProgress: ((AnimationProgress) -> Void)?
+    var animationProgress: ((Float) -> Void)?
     
     private var displayLink: CADisplayLink?
     
@@ -83,7 +78,7 @@ class LiquidGlassTabBarOverlay: UIView {
 
         switch recognizer.state {
         case .began:
-            renderer.appearTarget = 1.0
+            renderer.appearTarget = .showing(progress: 1)
 
             let fingerXRaw = recognizer.location(in: self).x
             dragFingerOffsetX = initialX - fingerXRaw
@@ -106,10 +101,11 @@ class LiquidGlassTabBarOverlay: UIView {
             updateCenterAndStretch(xPosition: blendedX, velocity: velocity)
 
         case .ended, .cancelled, .failed:
-            renderer.appearTarget = 0.0
-            let xPosition = currentSelectionFrame.midX + xOffset
-            updateCenterAndStretch(xPosition: xPosition, velocity: velocity)
-
+            let target = Float(initialX / bounds.width)
+            renderer.appearTarget = .dismissing(progress: 0, targetXPosition: target)
+            let impulse = Float(velocity.x) * 0.00002
+            renderer.stretch += impulse
+            
         default:
             break
         }
@@ -233,11 +229,7 @@ class LiquidGlassTabBarOverlay: UIView {
     private func handleDisplayTick(displayLink: CADisplayLink) {
         guard let drawable = metalLayer?.nextDrawable(), let renderer else { return }
         
-        if renderer.appearTarget == 1 {
-            animationProgress?(.showing(progress: 1 - renderer.appear))
-        } else {
-            animationProgress?(.dismissing(progress: 1 - renderer.appear))
-        }
+        animationProgress?(1 - renderer.appear)
         
         renderer.draw(to: drawable)
     }
