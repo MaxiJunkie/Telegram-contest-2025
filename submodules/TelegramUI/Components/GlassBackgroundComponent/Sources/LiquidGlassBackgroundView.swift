@@ -301,7 +301,7 @@ public class LiquidGlassBackgroundView: UIView {
         }
     }
     
-    private let backgroundNode: LiquidGlassBlurNode?
+    private let backgroundNode: NavigationBackgroundNode?
     
     private let nativeView: UIVisualEffectView?
     private let nativeViewClippingContext: ClippingShapeContext?
@@ -329,7 +329,7 @@ public class LiquidGlassBackgroundView: UIView {
     public static var useCustomGlassImpl: Bool = true
     
     public override init(frame: CGRect) {
-        let backgroundNode = LiquidGlassBlurNode()
+        let backgroundNode = NavigationBackgroundNode(color: .white, enableBlur: false, customBlurRadius: 8.0)
         self.backgroundNode = backgroundNode
         self.nativeView = nil
         self.nativeViewClippingContext = nil
@@ -356,7 +356,13 @@ public class LiquidGlassBackgroundView: UIView {
         if let nativeParamsView = self.nativeParamsView {
             self.addSubview(nativeParamsView)
         }
-        self.addSubview(backgroundNode)
+        if let backgroundNode = self.backgroundNode {
+            self.addSubview(backgroundNode.view)
+        }
+        if let foregroundView = self.foregroundView {
+            self.addSubview(foregroundView)
+            foregroundView.mask = self.maskContainerView
+        }
         self.addSubview(self.contentContainer)
     }
     
@@ -393,11 +399,13 @@ public class LiquidGlassBackgroundView: UIView {
             }
         }
         if let backgroundNode = self.backgroundNode {
+            backgroundNode.updateColor(color: .white, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
+            
             switch shape {
             case let .roundedRect(cornerRadius):
                 backgroundNode.update(size: size, cornerRadius: cornerRadius, transition: transition.containedViewLayoutTransition)
             }
-            transition.setFrame(view: backgroundNode, frame: CGRect(origin: CGPoint(), size: size))
+            transition.setFrame(view: backgroundNode.view, frame: CGRect(origin: CGPoint(), size: size))
         }
         
         let shadowInset: CGFloat = 32.0
