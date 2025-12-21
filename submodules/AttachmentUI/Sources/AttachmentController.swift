@@ -1059,13 +1059,13 @@ public class AttachmentController: ViewController, MinimizableController {
                     let sourceButtonFrame = attachmentButton.convert(attachmentButton.bounds, to: self.view)
                     let sourceButtonScale = sourceButtonFrame.width / targetFrame.width
                     
-                    if let sourceGlassView = findParentGlassBackgroundView(attachmentButton), let glassParams = sourceGlassView.params {
+                    if let sourceGlassView = findParentLiquidGlassBackgroundView(attachmentButton), let glassParams = sourceGlassView.params {
                         let containerView = ClipContainerView()
                         containerView.update(bounds: CGRect(origin: CGPoint(x: 0.0, y: (targetFrame.height - targetFrame.width) * 0.5), size: CGSize(width: targetFrame.width, height: targetFrame.width)), topCornerRadius: targetFrame.width * 0.5, bottomCornerRadius: targetFrame.width * 0.5, boundsTransition: .immediate, cornersTransition: .immediate)
                         containerView.frame = targetFrame
                         self.view.addSubview(containerView)
                         
-                        let localGlassView = GlassBackgroundView()
+                        let localGlassView = LiquidGlassBackgroundView()
                         localGlassView.update(
                             size: targetFrame.size,
                             cornerRadius: 0.0,
@@ -1164,13 +1164,13 @@ public class AttachmentController: ViewController, MinimizableController {
                     let targetButtonFrame = attachmentButton.convert(attachmentButton.bounds, to: self.view)
                     let targetButtonScale = targetButtonFrame.width / initialFrame.width
                     
-                    if let sourceGlassView = findParentGlassBackgroundView(attachmentButton), let glassParams = sourceGlassView.params {
+                    if let sourceGlassView = findParentLiquidGlassBackgroundView(attachmentButton), let glassParams = sourceGlassView.params {
                         let containerView = ClipContainerView()
                         containerView.frame = initialFrame
                         containerView.update(bounds: CGRect(origin: .zero, size: initialFrame.size), topCornerRadius: 38.0, bottomCornerRadius: layout.deviceMetrics.screenCornerRadius - 2.0, boundsTransition: .immediate, cornersTransition: .immediate)
                         self.view.addSubview(containerView)
                         
-                        let localGlassView = GlassBackgroundView()
+                        let localGlassView = LiquidGlassBackgroundView()
                         localGlassView.update(
                             size: initialFrame.size,
                             cornerRadius: 0.0,
@@ -1687,6 +1687,15 @@ private func findParentGlassBackgroundView(_ view: UIView) -> GlassBackgroundVie
         return view
     } else if let superview = view.superview {
         return findParentGlassBackgroundView(superview)
+    }
+    return nil
+}
+
+private func findParentLiquidGlassBackgroundView(_ view: UIView) -> LiquidGlassBackgroundView? {
+    if let view = view as? LiquidGlassBackgroundView {
+        return view
+    } else if let superview = view.superview {
+        return findParentLiquidGlassBackgroundView(superview)
     }
     return nil
 }
