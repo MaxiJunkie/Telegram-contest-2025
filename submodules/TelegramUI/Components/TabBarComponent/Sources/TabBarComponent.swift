@@ -91,7 +91,9 @@ public final class TabBarComponent: Component {
         private var currentSelectionViewColor = UIColor(rgb: 0xe1edf9)
         
         public override init(frame: CGRect) {
-            self.backgroundView = GlassBackgroundView()
+            self.backgroundView = GlassBackgroundView(enableBlur: false)
+            self.backgroundView.backgroundNodeColor = .white
+            
             self.selectionView = GlassBackgroundView.ContentImageView()
             
             self.contextGestureContainerView = ContextControllerSourceView()

@@ -324,12 +324,14 @@ public class GlassBackgroundView: UIView {
         }
     }
     
+    public var backgroundNodeColor: UIColor = .clear
+    
     public private(set) var params: Params?
         
     public static var useCustomGlassImpl: Bool = true
     
-    public override init(frame: CGRect) {
-        let backgroundNode = NavigationBackgroundNode(color: .white, enableBlur: false, customBlurRadius: 8.0)
+    public init(frame: CGRect = .zero, enableBlur: Bool = true) {
+        let backgroundNode = NavigationBackgroundNode(color: .white, enableBlur: enableBlur, customBlurRadius: 8.0)
         self.backgroundNode = backgroundNode
         self.nativeView = nil
         self.nativeViewClippingContext = nil
@@ -399,7 +401,7 @@ public class GlassBackgroundView: UIView {
             }
         }
         if let backgroundNode = self.backgroundNode {
-            backgroundNode.updateColor(color: .white, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
+            backgroundNode.updateColor(color: backgroundNodeColor, forceKeepBlur: tintColor.color.alpha != 1.0, transition: transition.containedViewLayoutTransition)
             
             switch shape {
             case let .roundedRect(cornerRadius):
@@ -537,22 +539,9 @@ public final class GlassBackgroundContainerView: UIView {
     }
     
     public override init(frame: CGRect) {
-        if #available(iOS 26.0, *) {
-            let effect = UIGlassContainerEffect()
-            effect.spacing = 7.0
-            let nativeView = UIVisualEffectView(effect: effect)
-            self.nativeView = nativeView
-            
-            let nativeParamsView = EffectSettingsContainerView(frame: CGRect())
-            self.nativeParamsView = nativeParamsView
-            nativeParamsView.addSubview(nativeView)
-            
-            self.legacyView = nil
-        } else {
-            self.nativeView = nil
-            self.nativeParamsView = nil
-            self.legacyView = ContentView()
-        }
+        self.nativeView = nil
+        self.nativeParamsView = nil
+        self.legacyView = ContentView()
         
         super.init(frame: frame)
         
