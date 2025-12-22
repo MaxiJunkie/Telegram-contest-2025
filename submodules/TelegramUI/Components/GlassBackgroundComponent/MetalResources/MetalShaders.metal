@@ -49,6 +49,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     float3 tintAcc = float3(1.0);
 
     uint n = min(U.count, 16u);
+    
     for (uint i = 0; i < n; i++) {
         float4 r = E[i].rect;
         float2 center = r.xy + r.zw * 0.5;

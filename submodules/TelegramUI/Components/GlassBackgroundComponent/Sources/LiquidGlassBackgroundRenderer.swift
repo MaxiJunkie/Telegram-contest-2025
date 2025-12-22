@@ -57,7 +57,6 @@ final class LiquidGlassBackgroundRenderer {
         guard let queue = device.makeCommandQueue() else { return nil }
         self.queue = queue
 
-        // fullscreen quad (pos.xy, uv.xy)
         let quad: [Float] = [
             -1, -1,  0, 1,
              1, -1,  1, 1,
@@ -106,16 +105,17 @@ final class LiquidGlassBackgroundRenderer {
         let desc = MTLRenderPipelineDescriptor()
         desc.vertexFunction = vertexFunction
         desc.fragmentFunction = fragmentFunction
-        desc.colorAttachments[0].pixelFormat = .bgra8Unorm
-
-        let a = desc.colorAttachments[0]!
-        a.isBlendingEnabled = true
-        a.rgbBlendOperation = .add
-        a.alphaBlendOperation = .add
-        a.sourceRGBBlendFactor = .sourceAlpha
-        a.destinationRGBBlendFactor = .oneMinusSourceAlpha
-        a.sourceAlphaBlendFactor = .one
-        a.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        
+        let colorAttachment = desc.colorAttachments[0]!
+        
+        colorAttachment.pixelFormat = .bgra8Unorm
+        colorAttachment.isBlendingEnabled = true
+        colorAttachment.rgbBlendOperation = .add
+        colorAttachment.alphaBlendOperation = .add
+        colorAttachment.sourceRGBBlendFactor = .sourceAlpha
+        colorAttachment.destinationRGBBlendFactor = .oneMinusSourceAlpha
+        colorAttachment.sourceAlphaBlendFactor = .one
+        colorAttachment.destinationAlphaBlendFactor = .oneMinusSourceAlpha
 
         do {
             self.pipeline = try device.makeRenderPipelineState(descriptor: desc)

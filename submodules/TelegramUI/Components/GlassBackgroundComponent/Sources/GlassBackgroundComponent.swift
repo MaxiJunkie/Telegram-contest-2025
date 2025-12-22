@@ -330,7 +330,12 @@ public class GlassBackgroundView: UIView {
         
     public static var useCustomGlassImpl: Bool = true
     
-    public init(frame: CGRect = .zero, enableBlur: Bool = true, hasForegroundView: Bool = true) {
+    public init(
+        frame: CGRect = .zero,
+        enableBlur: Bool = true,
+        hasForegroundView: Bool = true,
+        hasShadowView: Bool = true
+    ) {
         let backgroundNode = NavigationBackgroundNode(color: .white, enableBlur: enableBlur, customBlurRadius: 8.0)
         self.backgroundNode = backgroundNode
         self.nativeView = nil
@@ -338,7 +343,7 @@ public class GlassBackgroundView: UIView {
         self.nativeParamsView = nil
         self.foregroundView = hasForegroundView ? UIImageView() : nil
         
-        self.shadowView = UIImageView()
+        self.shadowView = hasShadowView ? UIImageView() : nil
         
         self.maskContainerView = UIView()
         self.maskContainerView.backgroundColor = .white
