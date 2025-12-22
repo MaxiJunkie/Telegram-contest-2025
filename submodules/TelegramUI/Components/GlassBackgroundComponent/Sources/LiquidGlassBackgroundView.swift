@@ -9,26 +9,32 @@ final class LiquidGlassBackgroundView: UIView {
     
     private var renderer: LiquidGlassBackgroundRenderer?
 
+    private let device = MTLCreateSystemDefaultDevice()!
+    
     private var displayLink: CADisplayLink?
     private var tracked: [GlassBackgroundView] = []
-
+    private var needsRebuild = true
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
 
     private func commonInit() {
         backgroundColor = .clear
         isOpaque = false
 
-        metalLayer.device = MTLCreateSystemDefaultDevice()
+        metalLayer.device = device
         metalLayer.pixelFormat = .bgra8Unorm
         metalLayer.isOpaque = false
         metalLayer.framebufferOnly = true
-        
-        displayLink = CADisplayLink(target: self, selector: #selector(tick))
+        metalLayer.contentsScale = UIScreen.main.scale
+       
+        displayLink = CADisplayLink(target: self, selector: #selector(drawItems))
         displayLink?.add(to: .main, forMode: .common)
     }
 
@@ -43,24 +49,17 @@ final class LiquidGlassBackgroundView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        let scale = UIScreen.main.scale
-        let renderSize = CGSize(width: bounds.width * scale, height: bounds.height * scale)
-        
-        metalLayer.drawableSize = renderSize
-        
-        if renderer == nil, let device = MTLCreateSystemDefaultDevice() {
-            renderer = LiquidGlassBackgroundRenderer(device: device, renderSize: renderSize)
+        if renderer == nil {
+            renderer = LiquidGlassBackgroundRenderer(device: device)
         }
-        
-        metalLayer.frame = bounds
-        metalLayer.contentsScale = UIScreen.main.scale
-        
-        backgroundColor = UIColor.red.withAlphaComponent(0.2)
-        
-        renderer?.updateRenderSize(renderSize)
-        rebuildElements()
     }
 
+    func setRenderSize(_ renderSize: CGSize) {
+        print("setRenderSize \(renderSize)")
+        needsRebuild = true
+        metalLayer.drawableSize = renderSize
+    }
+    
     private func rebuildElements() {
         let scale = Float(metalLayer.contentsScale)
         var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
@@ -92,10 +91,24 @@ final class LiquidGlassBackgroundView: UIView {
         renderer?.setElements(elems)
     }
 
-    @objc private func tick() {
-        guard let drawable = metalLayer.nextDrawable() else { return }
-        renderer?.render(drawable: drawable, time: CACurrentMediaTime())
+    @objc private func drawItems() {
+        guard let renderer, let drawable = metalLayer.nextDrawable() else { return }
+        
+        print("draw \(metalLayer.drawableSize) needsRebuild \(needsRebuild)")
+        
+        if needsRebuild {
+            rebuildElements()
+            needsRebuild = false
+        }
+        
+        renderer.render(
+            drawable: drawable,
+            renderSize: metalLayer.drawableSize,
+            time: CACurrentMediaTime()
+        )
     }
 
-    deinit { displayLink?.invalidate() }
+    deinit {
+        displayLink?.invalidate()
+    }
 }

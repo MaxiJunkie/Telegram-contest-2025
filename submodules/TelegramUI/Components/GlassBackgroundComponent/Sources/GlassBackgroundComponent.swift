@@ -575,6 +575,8 @@ public final class GlassBackgroundContainerView: UIView {
     }
     
     public func update(size: CGSize, isDark: Bool, transition: ComponentTransition) {
+        let scale = UIScreen.main.scale
+        liquidGlassBackgroundView.setRenderSize(CGSize(width: size.width * scale, height: size.height * scale))
         transition.setFrame(view: liquidGlassBackgroundView, frame: CGRect(origin: CGPoint(), size: size))
     }
 }

@@ -44,15 +44,11 @@ final class LiquidGlassBackgroundRenderer {
     // MARK: - State
 
     private(set) var elements: [GlassElement] = []
-    private var lastDrawableSize: SIMD2<Float> = .zero
-   
-    private var renderSize: CGSize
     
     // MARK: - Init
 
-    init?(device: MTLDevice, renderSize: CGSize) {
+    init?(device: MTLDevice) {
         self.device = device
-        self.renderSize = renderSize
         
         guard let queue = device.makeCommandQueue() else { return nil }
         self.queue = queue
@@ -134,19 +130,14 @@ final class LiquidGlassBackgroundRenderer {
         }
     }
     
-    func updateRenderSize(_ renderSize: CGSize) {
-        self.renderSize = renderSize
-    }
-
-    func render(drawable: any CAMetalDrawable, time: CFTimeInterval) {
+    func render(drawable: any CAMetalDrawable, renderSize: CGSize, time: CFTimeInterval) {
         let sizePx = SIMD2<Float>(
             Float(renderSize.width),
             Float(renderSize.height)
         )
-        lastDrawableSize = sizePx
-
-        var u = Uniforms(viewSize: sizePx, time: Float(time), count: UInt32(elements.count))
-        memcpy(uniformsBuffer.contents(), &u, MemoryLayout<Uniforms>.stride)
+        
+        var uniforms = Uniforms(viewSize: sizePx, time: Float(time), count: UInt32(elements.count))
+        memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<Uniforms>.stride)
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = drawable.texture
