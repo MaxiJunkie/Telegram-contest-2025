@@ -46,7 +46,7 @@ final class LiquidGlassBackgroundRenderer {
     private(set) var elements: [GlassElement] = []
     private var lastDrawableSize: SIMD2<Float> = .zero
    
-    private let renderSize: CGSize
+    private var renderSize: CGSize
     
     // MARK: - Init
 
@@ -132,6 +132,10 @@ final class LiquidGlassBackgroundRenderer {
         if !elements.isEmpty, let buf = elementsBuffer {
             memcpy(buf.contents(), elements, elements.count * MemoryLayout<GlassElement>.stride)
         }
+    }
+    
+    func updateRenderSize(_ renderSize: CGSize) {
+        self.renderSize = renderSize
     }
 
     func render(drawable: any CAMetalDrawable, time: CFTimeInterval) {

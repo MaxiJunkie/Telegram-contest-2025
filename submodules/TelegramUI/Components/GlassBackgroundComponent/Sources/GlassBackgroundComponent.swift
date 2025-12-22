@@ -301,6 +301,10 @@ public class GlassBackgroundView: UIView {
         }
     }
     
+    public var backgroundNodeCornerRadius: CGFloat {
+        backgroundNode?.backgroundCornerRadius ?? 0
+    }
+    
     private let backgroundNode: NavigationBackgroundNode?
     
     private let nativeView: UIVisualEffectView?

@@ -10,7 +10,7 @@ final class LiquidGlassBackgroundView: UIView {
     private var renderer: LiquidGlassBackgroundRenderer?
 
     private var displayLink: CADisplayLink?
-    private var tracked: [UIView] = []
+    private var tracked: [GlassBackgroundView] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -35,7 +35,7 @@ final class LiquidGlassBackgroundView: UIView {
     override func addSubview(_ view: UIView) {
         super.addSubview(view)
 
-        if view is GlassBackgroundView {
+        if let view = view as? GlassBackgroundView {
             tracked.append(view)
         }
     }
@@ -54,7 +54,10 @@ final class LiquidGlassBackgroundView: UIView {
         
         metalLayer.frame = bounds
         metalLayer.contentsScale = UIScreen.main.scale
-
+        
+        backgroundColor = UIColor.red.withAlphaComponent(0.2)
+        
+        renderer?.updateRenderSize(renderSize)
         rebuildElements()
     }
 
@@ -63,25 +66,24 @@ final class LiquidGlassBackgroundView: UIView {
         var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
         elems.reserveCapacity(tracked.count)
 
-        for v in tracked where v.superview != nil && !v.isHidden && v.alpha > 0.001 {
-            let r = v.convert(v.bounds, to: self)
+        for view in tracked where view.superview != nil && !view.isHidden && view.alpha > 0.001 {
+            let r = view.convert(view.bounds, to: self)
 
             // в пиксели
             let x = Float(r.minX) * scale
             let y = Float(r.minY) * scale
             let w = Float(r.width) * scale
             let h = Float(r.height) * scale
-
-            let cr = v.layer.cornerRadius > 0 ? v.layer.cornerRadius : min(r.width, r.height) * 0.5
-            let radiusPx = Float(cr) * scale
-
+            
+            let cornerRadius = Float(view.backgroundNodeCornerRadius) * scale
+            
             // можешь тонировать как хочешь (например розоватый)
             let tint = SIMD4<Float>(1.0, 1.0, 1.0, 1.0)
 
             elems.append(.init(
                 rect: SIMD4<Float>(x, y, w, h),
-                radius: radiusPx,
-                intensity: Float(v.alpha),
+                radius: cornerRadius,
+                intensity: Float(view.alpha),
                 kind: 0,
                 tint: tint
             ))
