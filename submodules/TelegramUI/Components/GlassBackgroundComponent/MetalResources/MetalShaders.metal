@@ -52,10 +52,10 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     for (uint i = 0; i < n; i++) {
         float4 r = E[i].rect;
         float2 center = r.xy + r.zw * 0.5;
-        float2 half   = r.zw * 0.5;
+        float2 halfSize   = r.zw * 0.5;
 
         float2 p = px - center;
-        float d  = sdRoundRect(p, half, E[i].radius);
+        float d  = sdRoundRect(p, halfSize, E[i].radius);
 
         float aa = 1.2;
         float fill = 1.0 - smoothstep(0.0, aa, d);

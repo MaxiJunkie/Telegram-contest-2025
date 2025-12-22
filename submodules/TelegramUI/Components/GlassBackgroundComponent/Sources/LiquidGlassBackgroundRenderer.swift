@@ -80,18 +80,32 @@ final class LiquidGlassBackgroundRenderer {
             return nil
         }
         self.uniformsBuffer = uniformsBuffer
-
-        // Pipeline
-        guard let library = device.makeDefaultLibrary(),
-              let vs = library.makeFunction(name: "glassVS"),
-              let fs = library.makeFunction(name: "glassFS")
-        else {
+        
+        let mainBundle = Bundle(for: LiquidGlassBackgroundRenderer.self)
+        
+        guard let path = mainBundle.path(forResource: "GlassBackgroundComponentBundle", ofType: "bundle") else {
+            return nil
+        }
+        
+        guard let bundle = Bundle(path: path) else {
+            return nil
+        }
+        
+        guard let library = try? device.makeDefaultLibrary(bundle: bundle) else {
+            return nil
+        }
+        
+        guard let vertexFunction = library.makeFunction(name: "glassVS") else {
+            return nil
+        }
+        
+        guard let fragmentFunction = library.makeFunction(name: "glassFS") else {
             return nil
         }
 
         let desc = MTLRenderPipelineDescriptor()
-        desc.vertexFunction = vs
-        desc.fragmentFunction = fs
+        desc.vertexFunction = vertexFunction
+        desc.fragmentFunction = fragmentFunction
         desc.colorAttachments[0].pixelFormat = .bgra8Unorm
 
         let a = desc.colorAttachments[0]!
