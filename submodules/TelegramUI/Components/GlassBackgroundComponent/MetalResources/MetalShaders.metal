@@ -33,6 +33,11 @@ static inline float sdRoundRect(float2 p, float2 b, float r) {
     return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
 }
 
+static inline float smin_poly(float a, float b, float k) {
+    float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
 static inline float hash21(float2 p) {
     float n = sin(dot(p, float2(12.9898, 78.233)));
     return fract(n * 43758.5453);
@@ -44,84 +49,104 @@ fragment float4 glassFS(VSOut in [[stage_in]],
 {
     float2 px = in.uv * U.viewSize;
 
-    // ---------- tuning knobs ----------
-    const float baseAlpha      = 0.8;  // ↑ сделай 0.28..0.45 (главная плотность)
-    const float edgeAlphaBoost = 0.35;  // ↑ 0.10..0.35 (плотнее у края)
-    const float hazeStrength   = 0.8;  // ↑ 0.20..0.60 (молочность/матовость)
-    const float rimStrength    = 0.28;  // ↑ 0.15..0.45 (светлый ободок)
-    const float highlightStr   = 0.25;  // ↑ 0.08..0.25 (верхний блик)
-    const float shadowStr      = 0.08;  // ↑ 0.00..0.12 (низ чуть темнее)
-    const float grainStr       = 0.03; // ↑ 0.00..0.03 (микрошум)
-    const float strokeW        = 1.5;   // px (тонкая линия)
-    // -------------------------------
+    // ---------- tuning knobs (твои) ----------
+    const float baseAlpha      = 0.80;
+    const float edgeAlphaBoost = 0.35;
+    const float hazeStrength   = 0.80;
+    const float rimStrength    = 0.28;
+    const float highlightStr   = 0.25;
+    const float shadowStr      = 0.08;
+    const float grainStr       = 0.03;
+    const float strokeW        = 1.5;   // px
+    // ----------------------------------------
 
+    // ---------- NEW: liquid соединение ----------
+    // -------------------------------------------
+    
+    const float liquidK     = 26; // насколько “круглить” место склейки (12..26)
+    const float contactEps  = 0.5;  // контакт в px: 0.0 = строго, 0.5..1.0 = надёжнее
+    
     uint n = (U.count < 16u) ? U.count : 16u;
-    if (n == 0u) return float4(0);
+    if (n == 0u) return float4(0.0);
 
-    // UNION по минимальному расстоянию (как настоящая геометрия)
-    float bestD = 1e9;
-    float4 bestRect = float4(0);
+    // hard min — чтобы выбрать “главный” rect для local y/highlight
+    float bestDHard = 1e9;
+    float4 bestRect = float4(0.0);
     float  bestIntensity = 1.0;
     float3 bestTint = float3(1.0);
 
+    // smooth union — чтобы получить “жидкую” общую форму
+    float bestD = 1e9;
+    bool first = true;
+    
     for (uint i = 0; i < n; i++) {
         float4 r = E[i].rect;
         float2 c = r.xy + r.zw * 0.5;
         float2 h = r.zw * 0.5;
 
-        float2 p = px - c;
-        float d  = sdRoundRect(p, h, E[i].radius);
+        float di = sdRoundRect(px - c, h, E[i].radius);
 
-        if (d < bestD) {
-            bestD = d;
+        // hard min для выбора “главного” элемента (цвет/локальный y)
+        if (di < bestDHard) {
+            bestDHard = di;
             bestRect = r;
             bestIntensity = E[i].intensity;
             bestTint = E[i].tint.rgb;
+        }
+
+        if (first) {
+            bestD = di;
+            first = false;
+        } else {
+            // ✅ ВАЖНО: smooth-склейка только когда обе формы реально “в контакте”
+            // (обе близко к границе/внутри)
+            if (bestD <= contactEps && di <= contactEps) {
+                bestD = smin_poly(bestD, di, liquidK);
+            } else {
+                bestD = min(bestD, di);
+            }
         }
     }
 
     // AA ширина (примерно 1 пиксель)
     float aa = 1.25;
 
-    float fill = 1.0 - smoothstep(0.0, aa, bestD);        // inside mask
-    if (fill <= 0.0005) return float4(0);
+    float fill = 1.0 - smoothstep(0.0, aa, bestD);
+    if (fill <= 0.0005) return float4(0.0);
 
-    float edge = 1.0 - smoothstep(0.0, aa, abs(bestD));   // near border
+    float edge = 1.0 - smoothstep(0.0, aa, abs(bestD));
 
-    // Локальные координаты внутри выбранного прямоугольника (0..1)
+    // локальная координата (0..1) — берём от ближайшего rect (bestRect)
     float2 local = (px - bestRect.xy) / max(bestRect.zw, float2(1.0));
     float y = clamp(local.y, 0.0, 1.0);
 
-    // ---------- alpha (делаем плотнее и “матовее”) ----------
+    // alpha
     float a = fill * (baseAlpha + edgeAlphaBoost * pow(edge, 0.7)) * bestIntensity;
 
-    // Тонкий контур (внутри+снаружи чуть-чуть)
+    // тонкий контур (внутри+снаружи чуть-чуть)
     float stroke = 1.0 - smoothstep(strokeW, strokeW + aa, abs(bestD));
     a = max(a, stroke * 0.10 * bestIntensity);
 
-    // ---------- lighting ----------
+    // lighting
     float rim = pow(edge, 0.55) * rimStrength * bestIntensity;
 
-    // верхний блик (локально по форме, а не по экрану)
-    float topBand = smoothstep(0.22, 0.02, y); // ярче возле верхней кромки
+    float topBand = smoothstep(0.22, 0.02, y);
     float highlight = topBand * highlightStr * fill;
 
-    // низ чуть темнее
     float bottom = smoothstep(0.55, 1.0, y) * shadowStr * fill;
 
-    // ---------- grain ----------
+    // grain
     float g = (hash21(px + U.time * 6.0) - 0.5) * 2.0; // -1..1
     float grain = g * grainStr;
 
-    // ---------- “молоко” без текстуры ----------
-    // чем больше haze — тем ближе к белому/матовому
+    // haze (молоко)
     float haze = hazeStrength * fill + 0.18 * rim;
 
     float3 col = bestTint;
-    col = mix(col, float3(1.0), haze);      // уводим в белёсость
-    col += (rim + highlight) * float3(1.0); // белый обод/блик
-    col -= bottom * float3(1.0);            // низ чуть темнее
-    col *= (1.0 + grain);                   // микро-зерно
+    col = mix(col, float3(1.0), haze);
+    col += (rim + highlight) * float3(1.0);
+    col -= bottom * float3(1.0);
+    col *= (1.0 + grain);
 
     return float4(col, a);
 }
