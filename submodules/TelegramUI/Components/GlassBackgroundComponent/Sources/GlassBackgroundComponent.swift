@@ -301,6 +301,8 @@ public class GlassBackgroundView: UIView {
         }
     }
     
+    public var shouldRenderBackgroundInMetal = false
+    
     public var backgroundNodeCornerRadius: CGFloat {
         backgroundNode?.backgroundCornerRadius ?? 0
     }

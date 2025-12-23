@@ -45,14 +45,14 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     float2 px = in.uv * U.viewSize;
 
     // ---------- tuning knobs ----------
-    const float baseAlpha      = 0.6;  // ↑ сделай 0.28..0.45 (главная плотность)
+    const float baseAlpha      = 0.8;  // ↑ сделай 0.28..0.45 (главная плотность)
     const float edgeAlphaBoost = 0.35;  // ↑ 0.10..0.35 (плотнее у края)
-    const float hazeStrength   = 0.6;  // ↑ 0.20..0.60 (молочность/матовость)
+    const float hazeStrength   = 0.8;  // ↑ 0.20..0.60 (молочность/матовость)
     const float rimStrength    = 0.28;  // ↑ 0.15..0.45 (светлый ободок)
-    const float highlightStr   = 0.16;  // ↑ 0.08..0.25 (верхний блик)
+    const float highlightStr   = 0.25;  // ↑ 0.08..0.25 (верхний блик)
     const float shadowStr      = 0.08;  // ↑ 0.00..0.12 (низ чуть темнее)
-    const float grainStr       = 0.018; // ↑ 0.00..0.03 (микрошум)
-    const float strokeW        = 1.2;   // px (тонкая линия)
+    const float grainStr       = 0.03; // ↑ 0.00..0.03 (микрошум)
+    const float strokeW        = 1.5;   // px (тонкая линия)
     // -------------------------------
 
     uint n = (U.count < 16u) ? U.count : 16u;

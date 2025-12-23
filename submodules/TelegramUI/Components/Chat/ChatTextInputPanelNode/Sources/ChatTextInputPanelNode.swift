@@ -636,6 +636,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             hasShadowView: false
         )
         
+        self.textInputContainerBackgroundView.shouldRenderBackgroundInMetal = true
         self.accessoryPanelContainer = UIView()
         self.accessoryPanelContainer.clipsToBounds = true
         
@@ -699,6 +700,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             hasForegroundView: false,
             hasShadowView: false
         )
+        self.attachmentButtonBackground.shouldRenderBackgroundInMetal = true
         self.attachmentButtonBackground.contentView.addSubview(self.attachmentButton)
         
         self.attachmentButtonIcon = GlassBackgroundView.ContentImageView()

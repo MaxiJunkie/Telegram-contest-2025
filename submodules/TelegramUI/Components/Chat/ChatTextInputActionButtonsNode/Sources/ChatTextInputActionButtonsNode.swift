@@ -180,7 +180,8 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         let strings = presentationInterfaceState.strings
         self.strings = strings
         
-        self.micButtonBackgroundView = GlassBackgroundView()
+        self.micButtonBackgroundView = GlassBackgroundView(enableBlur: false, hasForegroundView: false, hasShadowView: false)
+        self.micButtonBackgroundView.shouldRenderBackgroundInMetal = true
         self.maskContentView = UIView()
         
         self.micButtonTintMaskView = UIImageView()

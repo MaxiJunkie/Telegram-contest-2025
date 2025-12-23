@@ -12,7 +12,7 @@ final class LiquidGlassBackgroundView: UIView {
     private let device = MTLCreateSystemDefaultDevice()!
     
     private var displayLink: CADisplayLink?
-    private var tracked: [GlassBackgroundView] = []
+    private var glassBackgroundViews: Set<GlassBackgroundView> = []
     private var needsRebuild = true
     
     override init(frame: CGRect) {
@@ -41,8 +41,20 @@ final class LiquidGlassBackgroundView: UIView {
     override func addSubview(_ view: UIView) {
         super.addSubview(view)
 
-        if let view = view as? GlassBackgroundView {
-            tracked.append(view)
+        if let view = view as? GlassBackgroundView,
+           view.shouldRenderBackgroundInMetal,
+           !glassBackgroundViews.contains(where: { $0 === view })
+        {
+            glassBackgroundViews.insert(view)
+        } else {
+            for subview in view.subviews {
+                if let view = subview as? GlassBackgroundView,
+                   view.shouldRenderBackgroundInMetal,
+                   !glassBackgroundViews.contains(where: { $0 === view })
+                {
+                    glassBackgroundViews.insert(view)
+                }
+            }
         }
     }
 
@@ -62,9 +74,9 @@ final class LiquidGlassBackgroundView: UIView {
     private func rebuildElements() {
         let scale = Float(metalLayer.contentsScale)
         var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
-        elems.reserveCapacity(tracked.count)
+        elems.reserveCapacity(glassBackgroundViews.count)
 
-        for view in tracked where view.superview != nil && !view.isHidden && view.alpha > 0.001 {
+        for view in glassBackgroundViews where view.superview != nil && !view.isHidden && view.alpha > 0.001 {
             let rect = view.convert(view.bounds, to: self)
 
             // в пиксели
