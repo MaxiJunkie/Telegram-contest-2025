@@ -44,40 +44,84 @@ fragment float4 glassFS(VSOut in [[stage_in]],
 {
     float2 px = in.uv * U.viewSize;
 
-    float alpha = 0.0;
-    float rim = 0.0;
-    float3 tintAcc = float3(1.0);
+    // ---------- tuning knobs ----------
+    const float baseAlpha      = 0.6;  // ↑ сделай 0.28..0.45 (главная плотность)
+    const float edgeAlphaBoost = 0.35;  // ↑ 0.10..0.35 (плотнее у края)
+    const float hazeStrength   = 0.6;  // ↑ 0.20..0.60 (молочность/матовость)
+    const float rimStrength    = 0.28;  // ↑ 0.15..0.45 (светлый ободок)
+    const float highlightStr   = 0.16;  // ↑ 0.08..0.25 (верхний блик)
+    const float shadowStr      = 0.08;  // ↑ 0.00..0.12 (низ чуть темнее)
+    const float grainStr       = 0.018; // ↑ 0.00..0.03 (микрошум)
+    const float strokeW        = 1.2;   // px (тонкая линия)
+    // -------------------------------
 
-    uint n = min(U.count, 16u);
-    
+    uint n = (U.count < 16u) ? U.count : 16u;
+    if (n == 0u) return float4(0);
+
+    // UNION по минимальному расстоянию (как настоящая геометрия)
+    float bestD = 1e9;
+    float4 bestRect = float4(0);
+    float  bestIntensity = 1.0;
+    float3 bestTint = float3(1.0);
+
     for (uint i = 0; i < n; i++) {
         float4 r = E[i].rect;
-        float2 center = r.xy + r.zw * 0.5;
-        float2 halfSize   = r.zw * 0.5;
+        float2 c = r.xy + r.zw * 0.5;
+        float2 h = r.zw * 0.5;
 
-        float2 p = px - center;
-        float d  = sdRoundRect(p, halfSize, E[i].radius);
+        float2 p = px - c;
+        float d  = sdRoundRect(p, h, E[i].radius);
 
-        float aa = 1.2;
-        float fill = 1.0 - smoothstep(0.0, aa, d);
-        float edge = 1.0 - smoothstep(0.0, aa, abs(d));
-
-        float a = fill * (0.18 + 0.10 * edge) * E[i].intensity;
-        alpha = max(alpha, a);
-
-        rim = max(rim, pow(edge, 0.65) * 0.35 * E[i].intensity);
-        tintAcc = max(tintAcc, E[i].tint.rgb);
+        if (d < bestD) {
+            bestD = d;
+            bestRect = r;
+            bestIntensity = E[i].intensity;
+            bestTint = E[i].tint.rgb;
+        }
     }
 
-    if (alpha <= 0.0005) return float4(0.0);
+    // AA ширина (примерно 1 пиксель)
+    float aa = 1.25;
 
-    float top = smoothstep(0.9, 0.2, in.uv.y);
-    float highlight = top * 0.12 * alpha;
+    float fill = 1.0 - smoothstep(0.0, aa, bestD);        // inside mask
+    if (fill <= 0.0005) return float4(0);
 
-    float g = (hash21(px + U.time * 10.0) - 0.5) * 0.03;
+    float edge = 1.0 - smoothstep(0.0, aa, abs(bestD));   // near border
 
-    float3 col = tintAcc * (0.98 + g) + float3(1.0) * (0.10 * alpha);
-    col += float3(1.0) * (rim + highlight);
+    // Локальные координаты внутри выбранного прямоугольника (0..1)
+    float2 local = (px - bestRect.xy) / max(bestRect.zw, float2(1.0));
+    float y = clamp(local.y, 0.0, 1.0);
 
-    return float4(col, alpha);
+    // ---------- alpha (делаем плотнее и “матовее”) ----------
+    float a = fill * (baseAlpha + edgeAlphaBoost * pow(edge, 0.7)) * bestIntensity;
+
+    // Тонкий контур (внутри+снаружи чуть-чуть)
+    float stroke = 1.0 - smoothstep(strokeW, strokeW + aa, abs(bestD));
+    a = max(a, stroke * 0.10 * bestIntensity);
+
+    // ---------- lighting ----------
+    float rim = pow(edge, 0.55) * rimStrength * bestIntensity;
+
+    // верхний блик (локально по форме, а не по экрану)
+    float topBand = smoothstep(0.22, 0.02, y); // ярче возле верхней кромки
+    float highlight = topBand * highlightStr * fill;
+
+    // низ чуть темнее
+    float bottom = smoothstep(0.55, 1.0, y) * shadowStr * fill;
+
+    // ---------- grain ----------
+    float g = (hash21(px + U.time * 6.0) - 0.5) * 2.0; // -1..1
+    float grain = g * grainStr;
+
+    // ---------- “молоко” без текстуры ----------
+    // чем больше haze — тем ближе к белому/матовому
+    float haze = hazeStrength * fill + 0.18 * rim;
+
+    float3 col = bestTint;
+    col = mix(col, float3(1.0), haze);      // уводим в белёсость
+    col += (rim + highlight) * float3(1.0); // белый обод/блик
+    col -= bottom * float3(1.0);            // низ чуть темнее
+    col *= (1.0 + grain);                   // микро-зерно
+
+    return float4(col, a);
 }

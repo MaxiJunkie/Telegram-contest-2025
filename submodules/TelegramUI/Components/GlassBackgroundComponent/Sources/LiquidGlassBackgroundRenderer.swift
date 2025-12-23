@@ -40,7 +40,9 @@ final class LiquidGlassBackgroundRenderer {
 
     private var elementsBuffer: MTLBuffer?
     private var elementsCapacity: Int = 0
-
+    
+    private let semaphore = DispatchSemaphore(value: 3)
+    
     // MARK: - State
 
     private(set) var elements: [GlassElement] = []
@@ -131,6 +133,8 @@ final class LiquidGlassBackgroundRenderer {
     }
     
     func render(drawable: any CAMetalDrawable, renderSize: CGSize, time: CFTimeInterval) {
+        _ = semaphore.wait(timeout: .now())
+        
         let sizePx = SIMD2<Float>(
             Float(renderSize.width),
             Float(renderSize.height)
@@ -139,25 +143,33 @@ final class LiquidGlassBackgroundRenderer {
         var uniforms = Uniforms(viewSize: sizePx, time: Float(time), count: UInt32(elements.count))
         memcpy(uniformsBuffer.contents(), &uniforms, MemoryLayout<Uniforms>.stride)
 
-        let pass = MTLRenderPassDescriptor()
-        pass.colorAttachments[0].texture = drawable.texture
-        pass.colorAttachments[0].loadAction = .clear
-        pass.colorAttachments[0].storeAction = .store
-        pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        let passDescriptor = MTLRenderPassDescriptor()
+        passDescriptor.colorAttachments[0].texture = drawable.texture
+        passDescriptor.colorAttachments[0].loadAction = .clear
+        passDescriptor.colorAttachments[0].storeAction = .store
+        passDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
-        guard let cmd = queue.makeCommandBuffer(),
-              let enc = cmd.makeRenderCommandEncoder(descriptor: pass) else { return }
+        guard
+            let commandBuffer = queue.makeCommandBuffer(),
+            let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: passDescriptor)
+        else {
+            return
+        }
 
-        enc.setRenderPipelineState(pipeline)
-        enc.setVertexBuffer(quadVB, offset: 0, index: 0)
-        enc.setFragmentBuffer(uniformsBuffer, offset: 0, index: 0)
-        enc.setFragmentBuffer(elementsBuffer, offset: 0, index: 1)
+        encoder.setRenderPipelineState(pipeline)
+        encoder.setVertexBuffer(quadVB, offset: 0, index: 0)
+        encoder.setFragmentBuffer(uniformsBuffer, offset: 0, index: 0)
+        encoder.setFragmentBuffer(elementsBuffer, offset: 0, index: 1)
 
-        enc.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
-        enc.endEncoding()
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        encoder.endEncoding()
 
-        cmd.present(drawable)
-        cmd.commit()
+        commandBuffer.addCompletedHandler { _ in
+            self.semaphore.signal()
+        }
+        
+        commandBuffer.present(drawable)
+        commandBuffer.commit()
     }
 
     // MARK: - Helpers

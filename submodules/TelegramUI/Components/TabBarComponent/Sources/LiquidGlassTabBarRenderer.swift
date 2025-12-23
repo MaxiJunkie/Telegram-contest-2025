@@ -55,6 +55,8 @@ final class LiquidGlassTabBarRenderer {
     private let renderSize: CGSize
     private let textureLoader: MTKTextureLoader
     
+    private let semaphore = DispatchSemaphore(value: 3)
+    
     init?(device: MTLDevice, renderSize: CGSize) {
         self.device = device
         self.renderSize = renderSize
@@ -241,6 +243,9 @@ final class LiquidGlassTabBarRenderer {
     }
     
     func draw(to drawable: CAMetalDrawable, dt: Float) {
+        
+        _ = semaphore.wait(timeout: .now())
+        
         guard let commandBuffer = commandQueue.makeCommandBuffer() else { return }
 
         guard let backgroundTexture else { return }
@@ -342,6 +347,11 @@ final class LiquidGlassTabBarRenderer {
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 
         encoder.endEncoding()
+        
+        commandBuffer.addCompletedHandler { _ in
+            self.semaphore.signal()
+        }
+        
         commandBuffer.present(drawable)
         commandBuffer.commit()
     }

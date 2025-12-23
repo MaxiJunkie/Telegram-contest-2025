@@ -55,7 +55,6 @@ final class LiquidGlassBackgroundView: UIView {
     }
 
     func setRenderSize(_ renderSize: CGSize) {
-        print("setRenderSize \(renderSize)")
         needsRebuild = true
         metalLayer.drawableSize = renderSize
     }
@@ -66,13 +65,13 @@ final class LiquidGlassBackgroundView: UIView {
         elems.reserveCapacity(tracked.count)
 
         for view in tracked where view.superview != nil && !view.isHidden && view.alpha > 0.001 {
-            let r = view.convert(view.bounds, to: self)
+            let rect = view.convert(view.bounds, to: self)
 
             // в пиксели
-            let x = Float(r.minX) * scale
-            let y = Float(r.minY) * scale
-            let w = Float(r.width) * scale
-            let h = Float(r.height) * scale
+            let x = Float(rect.minX) * scale
+            let y = Float(rect.minY) * scale
+            let w = Float(rect.width) * scale
+            let h = Float(rect.height) * scale
             
             let cornerRadius = Float(view.backgroundNodeCornerRadius) * scale
             
@@ -93,8 +92,6 @@ final class LiquidGlassBackgroundView: UIView {
 
     @objc private func drawItems() {
         guard let renderer, let drawable = metalLayer.nextDrawable() else { return }
-        
-        print("draw \(metalLayer.drawableSize) needsRebuild \(needsRebuild)")
         
         if needsRebuild {
             rebuildElements()
