@@ -542,8 +542,10 @@ public class GlassBackgroundView: UIView, MetalBackgroundRenderable {
 }
 
 public final class GlassBackgroundContainerView: UIView {
+    private final class ContentView: UIView {
+    }
     
-    private let liquidGlassBackgroundView: LiquidGlassBackgroundView
+    private let legacyView: ContentView?
     private let nativeParamsView: EffectSettingsContainerView?
     private let nativeView: UIVisualEffectView?
     
@@ -551,18 +553,35 @@ public final class GlassBackgroundContainerView: UIView {
         if let nativeView = self.nativeView {
             return nativeView.contentView
         } else {
-            return self.liquidGlassBackgroundView
+            return self.legacyView!
         }
     }
     
     public override init(frame: CGRect) {
-        self.nativeView = nil
-        self.nativeParamsView = nil
-        self.liquidGlassBackgroundView = LiquidGlassBackgroundView()
+        if #available(iOS 26.0, *) {
+            let effect = UIGlassContainerEffect()
+            effect.spacing = 7.0
+            let nativeView = UIVisualEffectView(effect: effect)
+            self.nativeView = nativeView
+            
+            let nativeParamsView = EffectSettingsContainerView(frame: CGRect())
+            self.nativeParamsView = nativeParamsView
+            nativeParamsView.addSubview(nativeView)
+            
+            self.legacyView = nil
+        } else {
+            self.nativeView = nil
+            self.nativeParamsView = nil
+            self.legacyView = ContentView()
+        }
         
         super.init(frame: frame)
         
-        self.addSubview(liquidGlassBackgroundView)
+        if let nativeParamsView = self.nativeParamsView {
+            self.addSubview(nativeParamsView)
+        } else if let legacyView = self.legacyView {
+            self.addSubview(legacyView)
+        }
     }
     
     required public init?(coder: NSCoder) {
@@ -572,7 +591,7 @@ public final class GlassBackgroundContainerView: UIView {
     override public func didAddSubview(_ subview: UIView) {
         super.didAddSubview(subview)
         
-        if subview !== self.nativeParamsView && subview !== self.liquidGlassBackgroundView {
+        if subview !== self.nativeParamsView && subview !== self.legacyView {
             assertionFailure()
         }
     }
@@ -585,11 +604,21 @@ public final class GlassBackgroundContainerView: UIView {
     }
     
     public func update(size: CGSize, isDark: Bool, transition: ComponentTransition) {
-        let scale = UIScreen.main.scale
-        let origin = CGPoint(x: 0, y: -100)
-        let size = CGSize(width: size.width, height: size.height - origin.y)
-        liquidGlassBackgroundView.setRenderSize(CGSize(width: size.width * scale, height: size.height * scale))
-        transition.setFrame(view: liquidGlassBackgroundView, frame: CGRect(origin: origin, size: size))
+        if let nativeParamsView = self.nativeParamsView, let nativeView = self.nativeView {
+            nativeView.overrideUserInterfaceStyle = isDark ? .dark : .light
+            
+            if isDark {
+                nativeParamsView.lumaMin = 0.0
+                nativeParamsView.lumaMax = 0.15
+            } else {
+                nativeParamsView.lumaMin = 0.25
+                nativeParamsView.lumaMax = 1.0
+            }
+            
+            transition.setFrame(view: nativeView, frame: CGRect(origin: CGPoint(), size: size))
+        } else if let legacyView = self.legacyView {
+            transition.setFrame(view: legacyView, frame: CGRect(origin: CGPoint(), size: size))
+        }
     }
 }
 
