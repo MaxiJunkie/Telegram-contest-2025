@@ -636,6 +636,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             hasShadowView: false
         )
         
+        self.textInputContainerBackgroundView.id = "textInputContainerBackgroundView"
         self.textInputContainerBackgroundView.shouldRenderBackgroundInMetal = true
         self.accessoryPanelContainer = UIView()
         self.accessoryPanelContainer.clipsToBounds = true
@@ -700,6 +701,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             hasForegroundView: false,
             hasShadowView: false
         )
+        self.attachmentButtonBackground.id = "attachmentButtonBackground"
         self.attachmentButtonBackground.shouldRenderBackgroundInMetal = true
         self.attachmentButtonBackground.contentView.addSubview(self.attachmentButton)
         
@@ -718,6 +720,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.sendActionButtons.expandMediaInputButton.alpha = 0.0
         
         self.mediaActionButtons = ChatTextInputActionButtonsNode(context: context, presentationInterfaceState: presentationInterfaceState, presentationContext: presentationContext, presentController: presentController)
+        self.mediaActionButtons.micButtonBackgroundView.id = "micButtonBackgroundView"
+        self.mediaActionButtons.micButtonBackgroundView.shouldRenderBackgroundInMetal = true
         self.mediaActionButtons.sendContainerNode.alpha = 0.0
         
         self.counterTextNode = ImmediateTextNode()

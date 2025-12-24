@@ -50,7 +50,7 @@ private final class ContentContainer: UIView {
     }
 }
 
-public class GlassBackgroundView: UIView {
+public class GlassBackgroundView: UIView, MetalBackgroundRenderable {
     public protocol ContentView: UIView {
         var tintMask: UIView { get }
     }
@@ -305,6 +305,12 @@ public class GlassBackgroundView: UIView {
     
     public var backgroundNodeCornerRadius: CGFloat {
         backgroundNode?.backgroundCornerRadius ?? 0
+    }
+    
+    public var id: String = ""
+    
+    public var visibleView: UIView {
+        self
     }
     
     private let backgroundNode: NavigationBackgroundNode?

@@ -181,7 +181,6 @@ public final class ChatTextInputActionButtonsNode: ASDisplayNode, ChatSendMessag
         self.strings = strings
         
         self.micButtonBackgroundView = GlassBackgroundView(enableBlur: false, hasForegroundView: false, hasShadowView: false)
-        self.micButtonBackgroundView.shouldRenderBackgroundInMetal = true
         self.maskContentView = UIView()
         
         self.micButtonTintMaskView = UIImageView()

@@ -1,5 +1,6 @@
 import UIKit
 import Metal
+import Display
 
 final class LiquidGlassBackgroundView: UIView {
 
@@ -12,7 +13,7 @@ final class LiquidGlassBackgroundView: UIView {
     private let device = MTLCreateSystemDefaultDevice()!
     
     private var displayLink: CADisplayLink?
-    private var glassBackgroundViews: Set<GlassBackgroundView> = []
+    private var renderableViews: [String: MetalBackgroundRenderable] = [:]
     private var needsRebuild = true
     
     override init(frame: CGRect) {
@@ -41,18 +42,18 @@ final class LiquidGlassBackgroundView: UIView {
     override func addSubview(_ view: UIView) {
         super.addSubview(view)
 
-        if let view = view as? GlassBackgroundView,
-           view.shouldRenderBackgroundInMetal,
-           !glassBackgroundViews.contains(where: { $0 === view })
+        if let component = view as? MetalBackgroundRenderable,
+           component.shouldRenderBackgroundInMetal,
+           renderableViews[component.id] == nil
         {
-            glassBackgroundViews.insert(view)
+            renderableViews[component.id] = component
         } else {
             for subview in view.subviews {
-                if let view = subview as? GlassBackgroundView,
-                   view.shouldRenderBackgroundInMetal,
-                   !glassBackgroundViews.contains(where: { $0 === view })
+                if let component = subview as? MetalBackgroundRenderable,
+                   component.shouldRenderBackgroundInMetal,
+                   renderableViews[component.id] == nil
                 {
-                    glassBackgroundViews.insert(view)
+                    renderableViews[component.id] = component
                 }
             }
         }
@@ -74,9 +75,11 @@ final class LiquidGlassBackgroundView: UIView {
     private func rebuildElements() {
         let scale = Float(metalLayer.contentsScale)
         var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
-        elems.reserveCapacity(glassBackgroundViews.count)
+        elems.reserveCapacity(renderableViews.count)
 
-        for view in glassBackgroundViews where view.superview != nil && !view.isHidden && view.alpha > 0.001 {
+        for renderableView in renderableViews.values where renderableView.visibleView.superview != nil && !renderableView.visibleView.isHidden && renderableView.visibleView.alpha > 0.001 {
+            let view = renderableView.visibleView
+            
             let rect = view.convert(view.bounds, to: self)
 
             // в пиксели
@@ -85,7 +88,7 @@ final class LiquidGlassBackgroundView: UIView {
             let w = Float(rect.width) * scale
             let h = Float(rect.height) * scale
             
-            let cornerRadius = Float(view.backgroundNodeCornerRadius) * scale
+            let cornerRadius = Float(renderableView.backgroundNodeCornerRadius) * scale
             
             // можешь тонировать как хочешь (например розоватый)
             let tint = SIMD4<Float>(1.0, 1.0, 1.0, 1.0)
