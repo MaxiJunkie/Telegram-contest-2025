@@ -224,7 +224,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     public let textPlaceholderNode: ImmediateTextNodeWithEntities
     
-    private let glassBackgroundContainer: GlassBackgroundContainerView
+    private let glassBackgroundContainer: LiquidGlassBackgroundContainerView
     
     public var textLockIconNode: ASImageNode?
     public var contextPlaceholderNode: TextNode?
@@ -627,7 +627,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
         self.inputMenu = TextInputMenu(hasSpoilers: hasSpoilers, hasQuotes: hasQuotes)
         
-        self.glassBackgroundContainer = GlassBackgroundContainerView()
+        self.glassBackgroundContainer = LiquidGlassBackgroundContainerView()
         
         self.textInputContainerBackgroundView = GlassBackgroundView(
             frame: CGRect(),
@@ -821,7 +821,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        self.attachmentButton.addTarget(self, action: #selector(self.attachmentButtonPressed), for: .touchUpInside)
+      //  self.attachmentButton.addTarget(self, action: #selector(self.attachmentButtonPressed), for: .touchUpInside)
         self.attachmentButton.highligthedChanged = { [weak self] highlighted in
             if let self {
                 if highlighted {
@@ -931,8 +931,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.searchLayoutClearButton.alpha = 0.0
         self.searchLayoutClearButtonIcon.alpha = 0.0
         
-        self.glassBackgroundContainer.contentView.addSubview(self.textInputBackgroundNode.view)
-        self.glassBackgroundContainer.contentView.addSubview(self.textInputContainerBackgroundView)
+        self.glassBackgroundContainer.addSubview(self.textInputBackgroundNode.view)
+        self.glassBackgroundContainer.addSubview(self.textInputContainerBackgroundView)
         
         self.textInputContainerBackgroundView.contentView.addSubview(self.accessoryPanelContainer)
         self.textInputContainerBackgroundView.contentView.addSubview(self.textPlaceholderNode.view)
@@ -949,17 +949,17 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.sendAsAvatarButtonNode.addSubnode(self.sendAsAvatarContainerNode)
         self.textInputContainerBackgroundView.contentView.addSubview(self.sendAsAvatarButtonNode.view)
         
-        self.glassBackgroundContainer.contentView.addSubview(self.menuButton.view)
-        self.glassBackgroundContainer.contentView.addSubview(self.attachmentButtonBackground)
-        self.glassBackgroundContainer.contentView.addSubview(self.attachmentButtonDisabledNode.view)
+        self.glassBackgroundContainer.addSubview(self.menuButton.view)
+        self.glassBackgroundContainer.addSubview(self.attachmentButtonBackground)
+        self.glassBackgroundContainer.addSubview(self.attachmentButtonDisabledNode.view)
         
-        self.glassBackgroundContainer.contentView.addSubview(self.startButton.view)
+        self.glassBackgroundContainer.addSubview(self.startButton.view)
           
-        self.glassBackgroundContainer.contentView.addSubview(self.sendActionButtons.view)
-        self.glassBackgroundContainer.contentView.addSubview(self.mediaActionButtons.view)
+        self.glassBackgroundContainer.addSubview(self.sendActionButtons.view)
+        self.glassBackgroundContainer.addSubview(self.mediaActionButtons.view)
         self.textInputContainerBackgroundView.contentView.addSubview(self.counterTextNode.view)
         
-        self.glassBackgroundContainer.contentView.addSubview(self.slowModeButton.view)
+        self.glassBackgroundContainer.addSubview(self.slowModeButton.view)
         
         self.textInputContainerBackgroundView.contentView.addSubview(self.searchLayoutClearButton)
         self.textInputContainerBackgroundView.contentView.addSubview(self.searchLayoutClearButtonIcon)
@@ -1315,14 +1315,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         let menuContentDelta = (self.startButton.frame.width - self.menuButton.frame.width) / 2.0
         menuIconSnapshotView.frame = self.menuButtonIconNode.frame.offsetBy(dx: self.menuButton.frame.minX, dy: self.menuButton.frame.minY)
-        self.glassBackgroundContainer.contentView.addSubview(menuIconSnapshotView)
+        self.glassBackgroundContainer.addSubview(menuIconSnapshotView)
         menuIconSnapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak menuIconSnapshotView] _ in
             menuIconSnapshotView?.removeFromSuperview()
         })
         transition.updatePosition(layer: menuIconSnapshotView.layer, position: CGPoint(x: menuIconSnapshotView.center.x + menuContentDelta, y: self.startButton.position.y))
         
         menuTextSnapshotView.frame = self.menuButtonTextNode.frame.offsetBy(dx: self.menuButton.frame.minX + 19.0, dy: self.menuButton.frame.minY)
-        self.glassBackgroundContainer.contentView.addSubview(menuTextSnapshotView)
+        self.glassBackgroundContainer.addSubview(menuTextSnapshotView)
         menuTextSnapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak menuTextSnapshotView, weak self] _ in
             menuTextSnapshotView?.removeFromSuperview()
             self?.animatingTransition = false
@@ -1364,14 +1364,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         var menuIconSnapshotViewFrame = self.menuButtonIconNode.frame.offsetBy(dx: self.menuButton.frame.minX + menuContentDelta, dy: self.menuButton.frame.minY)
         menuIconSnapshotViewFrame.origin.y = self.startButton.position.y - menuIconSnapshotViewFrame.height / 2.0
         menuIconSnapshotView.frame = menuIconSnapshotViewFrame
-        self.glassBackgroundContainer.contentView.addSubview(menuIconSnapshotView)
+        self.glassBackgroundContainer.addSubview(menuIconSnapshotView)
         menuIconSnapshotView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         transition.updatePosition(layer: menuIconSnapshotView.layer, position: CGPoint(x: menuIconSnapshotView.center.x - menuContentDelta, y: self.menuButton.position.y))
         
         var menuTextSnapshotViewFrame = self.menuButtonTextNode.frame.offsetBy(dx: self.menuButton.frame.minX + 19.0 + menuContentDelta, dy: self.menuButton.frame.minY)
         menuTextSnapshotViewFrame.origin.y = self.startButton.position.y - menuTextSnapshotViewFrame.height / 2.0
         menuTextSnapshotView.frame = menuTextSnapshotViewFrame
-        self.glassBackgroundContainer.contentView.addSubview(menuTextSnapshotView)
+        self.glassBackgroundContainer.addSubview(menuTextSnapshotView)
         menuTextSnapshotView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         transition.updatePosition(layer: menuTextSnapshotView.layer, position: CGPoint(x: menuTextSnapshotView.center.x - menuContentDelta, y: self.menuButton.position.y), completion: { [weak self, weak menuIconSnapshotView, weak menuTextSnapshotView] _ in
             self?.animatingTransition = false
@@ -2480,7 +2480,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             } else {
                 audioRecordingInfoContainerNode = ASDisplayNode()
                 self.audioRecordingInfoContainerNode = audioRecordingInfoContainerNode
-                self.glassBackgroundContainer.contentView.addSubview(audioRecordingInfoContainerNode.view)
+                self.glassBackgroundContainer.addSubview(audioRecordingInfoContainerNode.view)
             }
             
             var animateTimeSlideIn = false
@@ -2633,7 +2633,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 audioRecordingDotView.image = generateStretchableFilledCircleImage(diameter: 10.0, color: UIColor(rgb: 0xFF2D55))
                 
                 self.audioRecordingDotView = audioRecordingDotView
-                self.glassBackgroundContainer.contentView.insertSubview(audioRecordingDotView, belowSubview: self.menuButton.view)
+                self.glassBackgroundContainer.insertSubview(audioRecordingDotView, belowSubview: self.menuButton.view)
                 
                 let previousDotFrame = CGRect(origin: CGPoint(x: self.textInputContainerBackgroundView.frame.minX + 16.0, y: dotFrame.minY), size: dotFrame.size)
                 audioRecordingDotView.center = previousDotFrame.center
@@ -3255,7 +3255,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     }
                     return true
                 }
-                self.glassBackgroundContainer.contentView.insertSubview(mediaRecordingAccessibilityArea.view, aboveSubview: self.mediaActionButtons.view)
+                self.glassBackgroundContainer.insertSubview(mediaRecordingAccessibilityArea.view, aboveSubview: self.mediaActionButtons.view)
             }
             self.mediaActionButtons.isAccessibilityElement = false
             let size: CGFloat = 120.0
@@ -3309,7 +3309,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 attachmentImageNode = TransformImageNode()
                 attachmentImageNode.isUserInteractionEnabled = false
                 self.attachmentImageNode = attachmentImageNode
-                self.glassBackgroundContainer.contentView.addSubview(attachmentImageNode.view)
+                self.glassBackgroundContainer.addSubview(attachmentImageNode.view)
             }
             
             let attachmentImageSize = CGSize(width: 26.0, height: 26.0)

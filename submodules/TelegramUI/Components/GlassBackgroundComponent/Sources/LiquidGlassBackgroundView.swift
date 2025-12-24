@@ -13,8 +13,7 @@ final class LiquidGlassBackgroundView: UIView {
 
     private var animStates: [String: AnimState] = [:]
     private var currentScale: [String: Float] = [:]
-
-    private let scaleAmount: Float = 0.30
+    
     private let animDuration: CFTimeInterval = 0.25
 
     private func easeOutCubic(_ t: Float) -> Float {
@@ -56,9 +55,7 @@ final class LiquidGlassBackgroundView: UIView {
         displayLink?.add(to: .main, forMode: .common)
     }
 
-    override func addSubview(_ view: UIView) {
-        super.addSubview(view)
-
+    func addRenderableViewIfNeeded(_ view: UIView) {
         if let component = view as? MetalBackgroundRenderable,
            component.shouldRenderBackgroundInMetal,
            renderableViews[component.id] == nil
@@ -90,16 +87,15 @@ final class LiquidGlassBackgroundView: UIView {
     
     private func rebuildElements(now: CFTimeInterval) {
         let scalePx = Float(metalLayer.contentsScale)
-        var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
-        elems.reserveCapacity(renderableViews.count)
+        var elements: [LiquidGlassBackgroundRenderer.GlassElement] = []
         
         for (id, renderable) in renderableViews {
-            if let req = renderable.animation {
-                let cur = currentScale[id] ?? 1.0
-                let target: Float = (req == .scaleUp) ? (1.0 + scaleAmount) : 1.0
+            if let animation = renderable.animation {
+                let scale = currentScale[id] ?? 1.0
+                let target: Float = animation.target
 
-                if abs(cur - target) > 0.0001 {
-                    animStates[id] = AnimState(from: cur, to: target, start: now, duration: animDuration)
+                if abs(scale - target) > 0.0001 {
+                    animStates[id] = AnimState(from: scale, to: target, start: now, duration: animDuration)
                 }
                 renderable.animation = nil
             }
@@ -107,6 +103,7 @@ final class LiquidGlassBackgroundView: UIView {
         
         for (id, renderableView) in renderableViews {
             let view = renderableView.visibleView
+            
             guard view.superview != nil, !view.isHidden, view.alpha > 0.001 else {
                 animStates.removeValue(forKey: id)
                 currentScale.removeValue(forKey: id)
@@ -114,18 +111,18 @@ final class LiquidGlassBackgroundView: UIView {
             }
             
             var scale: Float = currentScale[id] ?? 1.0
-            if let st = animStates[id] {
-                let p = Float(min(1.0, max(0.0, (now - st.start) / st.duration)))
-                let eased = easeOutCubic(p)
-                scale = st.from + (st.to - st.from) * eased
+            if let state = animStates[id] {
+                let point = Float(min(1.0, max(0.0, (now - state.start) / state.duration)))
+                let eased = easeOutCubic(point)
+                scale = state.from + (state.to - state.from) * eased
                 currentScale[id] = scale
 
-                if p >= 1.0 {
+                if point >= 1.0 {
                     animStates.removeValue(forKey: id)
-                    if abs(st.to - 1.0) < 0.0001 {
+                    if abs(state.to - 1.0) < 0.0001 {
                         currentScale.removeValue(forKey: id)
                     } else {
-                        currentScale[id] = st.to
+                        currentScale[id] = state.to
                     }
                 }
             }
@@ -145,7 +142,7 @@ final class LiquidGlassBackgroundView: UIView {
 
             let cornerRadius = Float(renderableView.backgroundNodeCornerRadius) * scalePx * scale
 
-            elems.append(.init(
+            elements.append(.init(
                 rect: SIMD4<Float>(x, y, w * scalePx, h * scalePx),
                 radius: cornerRadius,
                 intensity: Float(view.alpha),
@@ -154,7 +151,7 @@ final class LiquidGlassBackgroundView: UIView {
             ))
         }
 
-        renderer?.setElements(elems)
+        renderer?.setElements(elements)
     }
 
     @objc private func drawItems() {

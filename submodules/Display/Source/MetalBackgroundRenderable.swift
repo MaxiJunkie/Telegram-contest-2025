@@ -3,6 +3,16 @@ import UIKit
 public enum MetalBackgroundAnimation {
     case scaleUp
     case scaleDown
+    
+    public var target: Float {
+        switch self {
+        case .scaleUp:
+            1.4
+            
+        case .scaleDown:
+            1.0
+        }
+    }
 }
 
 public protocol MetalBackgroundRenderable: AnyObject {

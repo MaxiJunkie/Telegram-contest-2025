@@ -63,8 +63,8 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     // ---------- NEW: liquid соединение ----------
     // -------------------------------------------
     
-    const float liquidK     = 26; // насколько “круглить” место склейки (12..26)
-    const float contactEps  = 0.5;  // контакт в px: 0.0 = строго, 0.5..1.0 = надёжнее
+    const float liquidK     = 14; // насколько “круглить” место склейки (12..26)
+    const float contactEps  = 6;  // контакт в px: 0.0 = строго, 0.5..1.0 = надёжнее
     
     uint n = (U.count < 16u) ? U.count : 16u;
     if (n == 0u) return float4(0.0);
