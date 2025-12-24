@@ -4,6 +4,24 @@ import Display
 
 final class LiquidGlassBackgroundView: UIView {
 
+    private struct AnimState {
+        var from: Float
+        var to: Float
+        var start: CFTimeInterval
+        var duration: CFTimeInterval
+    }
+
+    private var animStates: [String: AnimState] = [:]
+    private var currentScale: [String: Float] = [:]
+
+    private let scaleAmount: Float = 0.30
+    private let animDuration: CFTimeInterval = 0.25
+
+    private func easeOutCubic(_ t: Float) -> Float {
+        let u = 1 - t
+        return 1 - u * u * u
+    }
+    
     override class var layerClass: AnyClass { CAMetalLayer.self }
     
     private var metalLayer: CAMetalLayer { layer as! CAMetalLayer }
@@ -14,7 +32,6 @@ final class LiquidGlassBackgroundView: UIView {
     
     private var displayLink: CADisplayLink?
     private var renderableViews: [String: MetalBackgroundRenderable] = [:]
-    private var needsRebuild = true
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -68,37 +85,72 @@ final class LiquidGlassBackgroundView: UIView {
     }
 
     func setRenderSize(_ renderSize: CGSize) {
-        needsRebuild = true
         metalLayer.drawableSize = renderSize
     }
     
-    private func rebuildElements() {
-        let scale = Float(metalLayer.contentsScale)
+    private func rebuildElements(now: CFTimeInterval) {
+        let scalePx = Float(metalLayer.contentsScale)
         var elems: [LiquidGlassBackgroundRenderer.GlassElement] = []
         elems.reserveCapacity(renderableViews.count)
+        
+        for (id, renderable) in renderableViews {
+            if let req = renderable.animation {
+                let cur = currentScale[id] ?? 1.0
+                let target: Float = (req == .scaleUp) ? (1.0 + scaleAmount) : 1.0
 
-        for renderableView in renderableViews.values where renderableView.visibleView.superview != nil && !renderableView.visibleView.isHidden && renderableView.visibleView.alpha > 0.001 {
+                if abs(cur - target) > 0.0001 {
+                    animStates[id] = AnimState(from: cur, to: target, start: now, duration: animDuration)
+                }
+                renderable.animation = nil
+            }
+        }
+        
+        for (id, renderableView) in renderableViews {
             let view = renderableView.visibleView
+            guard view.superview != nil, !view.isHidden, view.alpha > 0.001 else {
+                animStates.removeValue(forKey: id)
+                currentScale.removeValue(forKey: id)
+                continue
+            }
+            
+            var scale: Float = currentScale[id] ?? 1.0
+            if let st = animStates[id] {
+                let p = Float(min(1.0, max(0.0, (now - st.start) / st.duration)))
+                let eased = easeOutCubic(p)
+                scale = st.from + (st.to - st.from) * eased
+                currentScale[id] = scale
+
+                if p >= 1.0 {
+                    animStates.removeValue(forKey: id)
+                    if abs(st.to - 1.0) < 0.0001 {
+                        currentScale.removeValue(forKey: id)
+                    } else {
+                        currentScale[id] = st.to
+                    }
+                }
+            }
             
             let rect = view.convert(view.bounds, to: self)
+            
+            let cx = Float(rect.midX)
+            let cy = Float(rect.midY)
+            let w0 = Float(rect.width)
+            let h0 = Float(rect.height)
 
-            // в пиксели
-            let x = Float(rect.minX) * scale
-            let y = Float(rect.minY) * scale
-            let w = Float(rect.width) * scale
-            let h = Float(rect.height) * scale
-            
-            let cornerRadius = Float(renderableView.backgroundNodeCornerRadius) * scale
-            
-            // можешь тонировать как хочешь (например розоватый)
-            let tint = SIMD4<Float>(1.0, 1.0, 1.0, 1.0)
+            let w = w0 * scale
+            let h = h0 * scale
+
+            let x = (cx - w * 0.5) * scalePx
+            let y = (cy - h * 0.5) * scalePx
+
+            let cornerRadius = Float(renderableView.backgroundNodeCornerRadius) * scalePx * scale
 
             elems.append(.init(
-                rect: SIMD4<Float>(x, y, w, h),
+                rect: SIMD4<Float>(x, y, w * scalePx, h * scalePx),
                 radius: cornerRadius,
                 intensity: Float(view.alpha),
                 kind: 0,
-                tint: tint
+                tint: SIMD4<Float>(1,1,1,1)
             ))
         }
 
@@ -107,16 +159,14 @@ final class LiquidGlassBackgroundView: UIView {
 
     @objc private func drawItems() {
         guard let renderer, let drawable = metalLayer.nextDrawable() else { return }
+        let now = CACurrentMediaTime()
         
-        if needsRebuild {
-            rebuildElements()
-            needsRebuild = false
-        }
+        rebuildElements(now: now)
         
         renderer.render(
             drawable: drawable,
             renderSize: metalLayer.drawableSize,
-            time: CACurrentMediaTime()
+            time: now
         )
     }
 

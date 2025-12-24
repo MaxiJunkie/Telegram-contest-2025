@@ -825,13 +825,9 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.attachmentButton.highligthedChanged = { [weak self] highlighted in
             if let self {
                 if highlighted {
-                    self.attachmentButtonIcon.layer.removeAnimation(forKey: "opacity")
-                    self.attachmentButtonIcon.alpha = 0.4
-                    self.attachmentButtonIcon.layer.allowsGroupOpacity = true
+                    self.attachmentButtonBackground.animation = .scaleUp
                 } else {
-                    self.attachmentButtonIcon.alpha = 1.0
-                    self.attachmentButtonIcon.layer.animateAlpha(from: 0.4, to: 1.0, duration: 0.2)
-                    self.attachmentButtonIcon.layer.allowsGroupOpacity = false
+                    self.attachmentButtonBackground.animation = .scaleDown
                 }
             }
         }

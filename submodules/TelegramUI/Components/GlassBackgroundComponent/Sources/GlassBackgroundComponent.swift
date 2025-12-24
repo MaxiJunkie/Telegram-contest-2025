@@ -313,6 +313,8 @@ public class GlassBackgroundView: UIView, MetalBackgroundRenderable {
         self
     }
     
+    public var animation: MetalBackgroundAnimation?
+    
     private let backgroundNode: NavigationBackgroundNode?
     
     private let nativeView: UIVisualEffectView?
