@@ -821,7 +821,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-      //  self.attachmentButton.addTarget(self, action: #selector(self.attachmentButtonPressed), for: .touchUpInside)
+        self.attachmentButton.addTarget(self, action: #selector(self.attachmentButtonPressed), for: .touchUpInside)
         self.attachmentButton.highligthedChanged = { [weak self] highlighted in
             if let self {
                 self.attachmentButtonBackground.isAnimating = true
@@ -831,7 +831,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                     delay: 0,
                     options: [.beginFromCurrentState, .allowUserInteraction, .curveEaseOut],
                     animations: {
-                        self.attachmentButtonBackground.transform = highlighted ? CGAffineTransform(scaleX: 1.3, y: 1.3) : .identity
+                        self.attachmentButtonBackground.transform = highlighted ? CGAffineTransform(scaleX: 1.35, y: 1.35) : .identity
                     }, completion: { _ in
                         self.attachmentButtonBackground.isAnimating = false
                     }
@@ -2900,7 +2900,14 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         let textInputFrame = textInputContainerBackgroundFrame
         
         transition.updateFrame(view: self.accessoryPanelContainer, frame: CGRect(origin: CGPoint(), size: textInputContainerBackgroundFrame.size))
-        transition.updateFrame(view: self.textInputContainerBackgroundView, frame: textInputContainerBackgroundFrame)
+        
+        if transition.isAnimated {
+            self.textInputContainerBackgroundView.isAnimating = true
+        }
+        
+        transition.updateFrame(view: self.textInputContainerBackgroundView, frame: textInputContainerBackgroundFrame, completion: { _ in
+            self.textInputContainerBackgroundView.isAnimating = false
+        })
         
         self.updateCounterTextNode(backgroundSize: textInputContainerBackgroundFrame.size, transition: transition)
         
@@ -3177,11 +3184,32 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             }
         }
         
-        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: textInputContainerBackgroundFrame.maxY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
-        if inputHasText || self.extendedSearchLayout || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil {
-            mediaActionButtonsFrame.origin.x = width + 8.0
+        if transition.isAnimated {
+            mediaActionButtons.micButtonBackgroundView.isAnimating = true
         }
+        
+        let mediaActionButtonsOriginX = mediaActionButtons.frame.origin.x
+        var mediaActionButtonsFrame = CGRect(origin: CGPoint(x: textInputContainerBackgroundFrame.maxX + 6.0, y: textInputContainerBackgroundFrame.maxY - mediaActionButtonsSize.height), size: mediaActionButtonsSize)
+        
+        var micButtonBackgroundViewAlpha: CGFloat = 1
+        var micButtonBackgroundViewTransform = CGAffineTransform.identity
+        if inputHasText || self.extendedSearchLayout || hasMediaDraft || interfaceState.interfaceState.forwardMessageIds != nil {
+            mediaActionButtonsFrame.origin.x = mediaActionButtonsOriginX
+           
+            micButtonBackgroundViewAlpha = 0
+            micButtonBackgroundViewTransform = CGAffineTransform(scaleX: 0.7, y: 0.7)
+        }
+        
+        transition.updateAlpha(layer: self.mediaActionButtons.layer, alpha: micButtonBackgroundViewAlpha)
+        transition.updateTransform(
+            layer: self.mediaActionButtons.layer,
+            transform: micButtonBackgroundViewTransform
+        ) { _ in
+            self.mediaActionButtons.micButtonBackgroundView.isAnimating = false
+        }
+        
         transition.updateFrame(node: self.mediaActionButtons, frame: mediaActionButtonsFrame)
+        
         if let (rect, containerSize) = self.absoluteRect {
             self.mediaActionButtons.updateAbsoluteRect(CGRect(x: rect.origin.x + mediaActionButtonsFrame.origin.x, y: rect.origin.y + mediaActionButtonsFrame.origin.y, width: mediaActionButtonsFrame.width, height: mediaActionButtonsFrame.height), within: containerSize, transition: transition)
         }
@@ -5178,6 +5206,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
 
     @objc func attachmentButtonPressed() {
+        self.attachmentButtonBackground.isAnimating = false
+        
         if let presentationInterfaceState = self.presentationInterfaceState, presentationInterfaceState.interfaceState.mediaDraftState != nil {
             self.viewOnce = false
             self.audioRecordingRemoveAnimationState = .previewToAttachButton
