@@ -824,11 +824,18 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
       //  self.attachmentButton.addTarget(self, action: #selector(self.attachmentButtonPressed), for: .touchUpInside)
         self.attachmentButton.highligthedChanged = { [weak self] highlighted in
             if let self {
-                if highlighted {
-                    self.attachmentButtonBackground.animation = .scaleUp
-                } else {
-                    self.attachmentButtonBackground.animation = .scaleDown
-                }
+                self.attachmentButtonBackground.isAnimating = true
+                
+                UIView.animate(
+                    withDuration: 0.25,
+                    delay: 0,
+                    options: [.beginFromCurrentState, .allowUserInteraction, .curveEaseOut],
+                    animations: {
+                        self.attachmentButtonBackground.transform = highlighted ? CGAffineTransform(scaleX: 1.3, y: 1.3) : .identity
+                    }, completion: { _ in
+                        self.attachmentButtonBackground.isAnimating = false
+                    }
+                )
             }
         }
         self.attachmentButtonDisabledNode.addTarget(self, action: #selector(self.attachmentButtonPressed), forControlEvents: .touchUpInside)

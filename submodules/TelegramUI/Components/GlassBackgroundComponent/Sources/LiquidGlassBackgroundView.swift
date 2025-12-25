@@ -3,23 +3,6 @@ import Metal
 import Display
 
 final class LiquidGlassBackgroundView: UIView {
-
-    private struct AnimState {
-        var from: Float
-        var to: Float
-        var start: CFTimeInterval
-        var duration: CFTimeInterval
-    }
-
-    private var animStates: [String: AnimState] = [:]
-    private var currentScale: [String: Float] = [:]
-    
-    private let animDuration: CFTimeInterval = 0.25
-
-    private func easeOutCubic(_ t: Float) -> Float {
-        let u = 1 - t
-        return 1 - u * u * u
-    }
     
     override class var layerClass: AnyClass { CAMetalLayer.self }
     
@@ -89,53 +72,28 @@ final class LiquidGlassBackgroundView: UIView {
         let scalePx = Float(metalLayer.contentsScale)
         var elements: [LiquidGlassBackgroundRenderer.GlassElement] = []
         
-        for (id, renderable) in renderableViews {
-            if let animation = renderable.animation {
-                let scale = currentScale[id] ?? 1.0
-                let target: Float = animation.target
-
-                if abs(scale - target) > 0.0001 {
-                    animStates[id] = AnimState(from: scale, to: target, start: now, duration: animDuration)
-                }
-                renderable.animation = nil
-            }
-        }
-        
-        for (id, renderableView) in renderableViews {
+        for (_, renderableView) in renderableViews {
             let view = renderableView.visibleView
             
             guard view.superview != nil, !view.isHidden, view.alpha > 0.001 else {
-                animStates.removeValue(forKey: id)
-                currentScale.removeValue(forKey: id)
                 continue
             }
             
-            var scale: Float = currentScale[id] ?? 1.0
-            if let state = animStates[id] {
-                let point = Float(min(1.0, max(0.0, (now - state.start) / state.duration)))
-                let eased = easeOutCubic(point)
-                scale = state.from + (state.to - state.from) * eased
-                currentScale[id] = scale
-
-                if point >= 1.0 {
-                    animStates.removeValue(forKey: id)
-                    if abs(state.to - 1.0) < 0.0001 {
-                        currentScale.removeValue(forKey: id)
-                    } else {
-                        currentScale[id] = state.to
-                    }
-                }
-            }
+            let layer: CALayer = (renderableView.isAnimating ? view.layer.presentation() : view.layer) ?? view.layer
+            let rect = layer.convert(layer.bounds, to: self.layer)
             
-            let rect = view.convert(view.bounds, to: self)
+            let transform = layer.affineTransform()
+            let sx = sqrt(transform.a * transform.a + transform.c * transform.c)
+            let sy = sqrt(transform.b * transform.b + transform.d * transform.d)
+            let scale  = Float((sx + sy) * 0.5)
             
             let cx = Float(rect.midX)
             let cy = Float(rect.midY)
             let w0 = Float(rect.width)
             let h0 = Float(rect.height)
 
-            let w = w0 * scale
-            let h = h0 * scale
+            let w = w0
+            let h = h0
 
             let x = (cx - w * 0.5) * scalePx
             let y = (cy - h * 0.5) * scalePx

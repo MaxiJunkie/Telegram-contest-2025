@@ -313,7 +313,7 @@ public class GlassBackgroundView: UIView, MetalBackgroundRenderable {
         self
     }
     
-    public var animation: MetalBackgroundAnimation?
+    public var isAnimating: Bool = false
     
     private let backgroundNode: NavigationBackgroundNode?
     

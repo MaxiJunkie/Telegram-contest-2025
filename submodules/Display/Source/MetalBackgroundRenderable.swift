@@ -1,24 +1,9 @@
 import UIKit
 
-public enum MetalBackgroundAnimation {
-    case scaleUp
-    case scaleDown
-    
-    public var target: Float {
-        switch self {
-        case .scaleUp:
-            1.4
-            
-        case .scaleDown:
-            1.0
-        }
-    }
-}
-
 public protocol MetalBackgroundRenderable: AnyObject {
     var shouldRenderBackgroundInMetal: Bool { get set }
     var backgroundNodeCornerRadius: CGFloat { get }
     var visibleView: UIView { get }
     var id: String { get set }
-    var animation: MetalBackgroundAnimation? { get set }
+    var isAnimating: Bool { get set }
 }
