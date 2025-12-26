@@ -28,6 +28,7 @@ final class LiquidGlassBackgroundView: UIView {
         backgroundColor = .clear
         isOpaque = false
 
+        isUserInteractionEnabled = false
         metalLayer.device = device
         metalLayer.pixelFormat = .bgra8Unorm
         metalLayer.isOpaque = false

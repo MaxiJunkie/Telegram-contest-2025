@@ -224,6 +224,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     public let textPlaceholderNode: ImmediateTextNodeWithEntities
     
+    public var liquidGlassBackgroundView: UIView {
+        glassBackgroundContainer.renderView
+    }
+    
     private let glassBackgroundContainer: LiquidGlassBackgroundContainerView
     
     public var textLockIconNode: ASImageNode?
@@ -412,6 +416,8 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     private var starReactionButton: ComponentView<Empty>?
     private var liveMicrophoneButton: ComponentView<Empty>?
     private var settingsButton: ComponentView<Empty>?
+    
+    private var keyboardIsActive = false
     
     public func insertText(text: NSAttributedString) {
         guard let textInputState = self.presentationInterfaceState?.interfaceState.effectiveInputState else {
@@ -1038,10 +1044,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.currentEmojiSuggestion?.disposable.dispose()
     }
     
-    override public func didLoad() {
-        super.didLoad()
-    }
-    
     public func loadTextInputNodeIfNeeded() {
         if self.textInputNode == nil {
             self.loadTextInputNode()
@@ -1400,7 +1402,29 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     private var absoluteRect: (CGRect, CGSize)?
     override public func updateAbsoluteRect(_ rect: CGRect, within containerSize: CGSize, transition: ContainedViewLayoutTransition) {
         self.absoluteRect = (rect, containerSize)
-
+        
+        if keyboardIsActive {
+            let frame = CGRect(
+                x: rect.origin.x,
+                y: 0,
+                width: containerSize.width,
+                height: containerSize.height
+            )
+            
+            glassBackgroundContainer.update(frame: frame, transition: .immediate)
+            
+        } else {
+            let offset: CGFloat = 100
+            let frame = CGRect(
+                x: rect.origin.x,
+                y: rect.origin.y - offset,
+                width: rect.width,
+                height: rect.height + 2 * offset
+            )
+            
+            glassBackgroundContainer.update(frame: frame, transition: .init(transition))
+        }
+        
         if !self.sendActionButtons.frame.width.isZero {
             self.sendActionButtons.updateAbsoluteRect(CGRect(origin: rect.origin.offsetBy(dx: self.sendActionButtons.frame.minX, dy: self.sendActionButtons.frame.minY), size: self.sendActionButtons.frame.size), within: containerSize, transition: transition)
         }
@@ -3549,7 +3573,6 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         let containerFrame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: contentHeight + 64.0))
         transition.updateFrame(view: self.glassBackgroundContainer, frame: containerFrame)
-        self.glassBackgroundContainer.update(size: containerFrame.size, isDark: interfaceState.theme.overallDarkAppearance, transition: ComponentTransition(transition))
         
         return contentHeight
     }
@@ -3609,7 +3632,13 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         parentController.present(tooltipController, in: .current)
     }
     
+    private var workItem: DispatchWorkItem?
+    
     public func chatInputTextNodeDidUpdateText() {
+        workItem?.cancel()
+        workItem = nil
+        keyboardIsActive = true
+        
         if let textInputNode = self.textInputNode, let presentationInterfaceState = self.presentationInterfaceState, let context = self.context {
             let baseFontSize = max(minInputFontSize, presentationInterfaceState.fontSize.baseDisplaySize)
             refreshChatTextInputAttributes(context: context, textView: textInputNode.textView, theme: presentationInterfaceState.theme, baseFontSize: baseFontSize, spoilersRevealed: self.spoilersRevealed, availableEmojis: (self.context?.animatedEmojiStickersValue.keys).flatMap(Set.init) ?? Set(), emojiViewProvider: self.emojiViewProvider, makeCollapsedQuoteAttachment: { text, attributes in
@@ -3624,6 +3653,13 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             self.interfaceInteraction?.updateTextInputStateAndMode({ _, inputMode in return (inputTextState, inputMode) })
             self.interfaceInteraction?.updateInputLanguage({ _ in return textInputNode.textInputMode?.primaryLanguage })
             self.updateTextNodeText(animated: true)
+            
+            let workItem = DispatchWorkItem(block: {
+                self.keyboardIsActive = false
+            })
+            
+            self.workItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: workItem)
         }
     }
     
@@ -4665,6 +4701,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     
     public var skipPresentationInterfaceStateUpdate = false
     public func chatInputTextNodeDidFinishEditing() {
+        keyboardIsActive = false
         guard let editableTextNode = self.textInputNode else {
             return
         }
@@ -5206,6 +5243,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
     }
 
     @objc func attachmentButtonPressed() {
+        self.attachmentButtonBackground.transform = .identity
         self.attachmentButtonBackground.isAnimating = false
         
         if let presentationInterfaceState = self.presentationInterfaceState, presentationInterfaceState.interfaceState.mediaDraftState != nil {

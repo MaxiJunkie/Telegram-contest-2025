@@ -1636,6 +1636,16 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                     immediatelyLayoutInputPanelAndAnimateAppearance = true
                     self.inputPanelClippingNode.insertSubnode(inputPanelNode, aboveSubnode: self.inputPanelBackgroundNode)
                 }
+                
+                if let inputTextPanelNode = inputPanelNode as? ChatTextInputPanelNode {
+                    if inputTextPanelNode.liquidGlassBackgroundView.superview == nil {
+                        self.inputPanelClippingNode.view.insertSubview(
+                            inputTextPanelNode.liquidGlassBackgroundView,
+                            belowSubview: inputTextPanelNode.view
+                        )
+                    }
+                }
+                
                 if let viewForOverlayContent = inputPanelNode.viewForOverlayContent, viewForOverlayContent.superview == nil {
                     self.inputPanelOverlayNode.view.addSubview(viewForOverlayContent)
                 }

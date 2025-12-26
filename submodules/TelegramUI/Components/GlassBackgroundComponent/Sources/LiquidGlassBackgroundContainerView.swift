@@ -1,14 +1,18 @@
 import UIKit
 import ComponentFlow
+import AsyncDisplayKit
 
 public final class LiquidGlassBackgroundContainerView: UIView {
+    
+    public var renderView: UIView {
+        liquidGlassBackgroundView
+    }
     
     private let liquidGlassBackgroundView: LiquidGlassBackgroundView
     
     public override init(frame: CGRect) {
         self.liquidGlassBackgroundView = LiquidGlassBackgroundView()
         super.init(frame: frame)
-        self.addSubview(liquidGlassBackgroundView)
     }
     
     required public init?(coder: NSCoder) {
@@ -20,11 +24,9 @@ public final class LiquidGlassBackgroundContainerView: UIView {
         liquidGlassBackgroundView.addRenderableViewIfNeeded(view)
     }
     
-    public func update(size: CGSize, isDark: Bool, transition: ComponentTransition) {
+    public func update(frame: CGRect, transition: ComponentTransition) {
         let scale = UIScreen.main.scale
-        let origin = CGPoint(x: 0, y: -100)
-        let size = CGSize(width: size.width, height: size.height - 2 * origin.y)
-        liquidGlassBackgroundView.setRenderSize(CGSize(width: size.width * scale, height: size.height * scale))
-        transition.setFrame(view: liquidGlassBackgroundView, frame: CGRect(origin: origin, size: size))
+        liquidGlassBackgroundView.setRenderSize(CGSize(width: frame.width * scale, height: frame.height * scale))
+        transition.setFrame(view: liquidGlassBackgroundView, frame: frame)
     }
 }
