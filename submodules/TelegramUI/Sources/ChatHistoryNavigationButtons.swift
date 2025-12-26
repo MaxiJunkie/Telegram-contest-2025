@@ -208,7 +208,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
             
             self.downButton.backgroundView.isAnimating = true
             
-            transition.updateFrame(
+            ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut).updateFrame(
                 view: self.downButton.backgroundView,
                 frame: CGRect(origin: CGPoint(x: 0, y: 0), size: self.downButton.backgroundView.bounds.size),
                 completion: { _ in
@@ -227,7 +227,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
                                    
             self.downButton.backgroundView.isAnimating = true
             
-            transition.updateFrame(
+            ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut).updateFrame(
                 view: self.downButton.backgroundView,
                 frame: CGRect(origin: CGPoint(x: 0, y: 52), size: self.downButton.backgroundView.bounds.size),
                 completion: { _ in
