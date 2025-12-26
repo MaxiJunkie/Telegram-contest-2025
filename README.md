@@ -34,7 +34,7 @@ A short demo video is included below.
 
 ## Demo
 
-- Task 1: <https://github.com/user-attachments/assets/e9c95aad-4974-47a8-a14d-d91de70728f1>
+- Task 1: (mp4) https://github.com/user-attachments/assets/e9c95aad-4974-47a8-a14d-d91de70728f1
 ---
 
 ## Build notes
