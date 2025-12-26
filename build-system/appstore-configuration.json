@@ -1,8 +1,8 @@
 {
-	"bundle_id": "org.ec4f7498d4a9d770.Telegram",
-	"api_id": "37096833",
-	"api_hash": "57c171a3d394504a14672f9ebfa7293f",
-	"team_id": "SYX4GCWJV7",
+	"bundle_id": "ph.telegra.Telegraph",
+	"api_id": "8",
+	"api_hash": "7245de8e747a0d6fbe11f7cc14fcc0bb",
+	"team_id": "C67CF9S4VU",
 	"app_center_id": "0",
 	"is_internal_build": "false",
 	"is_appstore_build": "true",
