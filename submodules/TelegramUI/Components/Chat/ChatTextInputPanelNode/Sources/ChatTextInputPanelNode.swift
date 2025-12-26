@@ -1404,22 +1404,23 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         self.absoluteRect = (rect, containerSize)
         
         if keyboardIsActive {
+            let height: CGFloat = 500
             let frame = CGRect(
                 x: rect.origin.x,
-                y: 0,
-                width: containerSize.width,
-                height: containerSize.height
+                y: rect.maxY - height,
+                width: rect.width,
+                height: height
             )
             
             glassBackgroundContainer.update(frame: frame, transition: .immediate)
             
         } else {
-            let offset: CGFloat = 100
+            let height: CGFloat = 500
             let frame = CGRect(
                 x: rect.origin.x,
-                y: rect.origin.y - offset,
+                y: rect.maxY - height,
                 width: rect.width,
-                height: rect.height + 2 * offset
+                height: height
             )
             
             glassBackgroundContainer.update(frame: frame, transition: .init(transition))
@@ -3659,7 +3660,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
             })
             
             self.workItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: workItem)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
         }
     }
     
