@@ -641,7 +641,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         self.textInputContainerBackgroundView = GlassBackgroundView(
             frame: CGRect(),
-            enableBlur: false,
+            enableBlur: true,
             hasForegroundView: false,
             hasShadowView: false
         )
@@ -707,7 +707,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         
         self.attachmentButtonBackground = GlassBackgroundView(
             frame: CGRect(),
-            enableBlur: false,
+            enableBlur: true,
             hasForegroundView: false,
             hasShadowView: false
         )

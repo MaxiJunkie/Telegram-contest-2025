@@ -111,7 +111,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
         
         let backgroundView = GlassBackgroundView(
             frame: .zero,
-            enableBlur: false,
+            enableBlur: true,
             hasForegroundView: false,
             hasShadowView: false
         )
@@ -206,8 +206,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
             self.downButton.isHidden = false
             self.downButton.backgroundView.isHidden = false
             
-            transition.updateAlpha(node: self.downButton, alpha: 1.0)
-            
+            self.downButton.alpha = 1
             self.downButton.backgroundView.isAnimating = true
             
             ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut).updateFrame(
@@ -219,15 +218,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
             )
             
         } else {
-            transition.updateAlpha(node: self.downButton, alpha: 0.0, completion: { [weak self] completed in
-                guard let strongSelf = self, completed else {
-                    return
-                }
-                
-                strongSelf.downButton.isHidden = true
-                strongSelf.downButton.backgroundView.isHidden = true
-            })
-                                   
+            downButton.alpha = 1
             self.downButton.backgroundView.isAnimating = true
             
             ContainedViewLayoutTransition.animated(duration: 0.3, curve: .easeInOut).updateFrame(
@@ -235,6 +226,8 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
                 frame: CGRect(origin: CGPoint(x: 0, y: 52), size: self.downButton.backgroundView.bounds.size),
                 completion: { _ in
                     self.downButton.backgroundView.isAnimating = false
+                    self.downButton.isHidden = true
+                    self.downButton.backgroundView.isHidden = true
                 }
             )
         }

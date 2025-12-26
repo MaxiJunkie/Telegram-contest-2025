@@ -50,7 +50,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     float2 px = in.uv * U.viewSize;
 
     // ---------- tuning knobs ----------
-    const float baseAlpha      = 0.80;
+    const float baseAlpha      = 0.40;
     const float edgeAlphaBoost = 0.35;
     const float hazeStrength   = 0.80;
     const float rimStrength    = 0.28;
@@ -60,7 +60,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     const float strokeW        = 1.5;
 
     const float liquidK     = 14;
-    const float contactEps  = 1;
+    const float contactEps  = 5;
     
     uint n = (U.count < 16u) ? U.count : 16u;
     if (n == 0u) return float4(0.0);
@@ -91,11 +91,14 @@ fragment float4 glassFS(VSOut in [[stage_in]],
             bestD = di;
             first = false;
         } else {
-            if (bestD <= contactEps && di <= contactEps) {
-                bestD = smin_poly(bestD, di, liquidK);
-            } else {
-                bestD = min(bestD, di);
-            }
+
+            float dMin   = min(bestD, di);
+            float dBlend = smin_poly(bestD, di, liquidK);
+            
+            float near = max(abs(bestD), abs(di));
+            float w    = smoothstep(contactEps, 0.0, near);
+
+            bestD = mix(dMin, dBlend, w);
         }
     }
     
