@@ -92,7 +92,6 @@ public final class TabBarComponent: Component {
         
         public override init(frame: CGRect) {
             self.backgroundView = GlassBackgroundView(enableBlur: false)
-            self.backgroundView.backgroundNodeColor = .white
             
             self.selectionView = GlassBackgroundView.ContentImageView()
             
@@ -429,6 +428,7 @@ public final class TabBarComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
+            self.backgroundView.backgroundNodeColor = component.theme.overallDarkAppearance ? .black : .white
             
             self.overrideUserInterfaceStyle = component.theme.overallDarkAppearance ? .dark : .light
             

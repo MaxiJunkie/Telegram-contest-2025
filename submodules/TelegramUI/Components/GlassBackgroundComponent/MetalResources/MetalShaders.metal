@@ -49,7 +49,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
 {
     float2 px = in.uv * U.viewSize;
 
-    // ---------- tuning knobs (твои) ----------
+    // ---------- tuning knobs ----------
     const float baseAlpha      = 0.80;
     const float edgeAlphaBoost = 0.35;
     const float hazeStrength   = 0.80;
@@ -57,19 +57,14 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     const float highlightStr   = 0.25;
     const float shadowStr      = 0.08;
     const float grainStr       = 0.03;
-    const float strokeW        = 1.5;   // px
-    // ----------------------------------------
+    const float strokeW        = 1.5;
 
-    // ---------- NEW: liquid соединение ----------
-    // -------------------------------------------
-    
-    const float liquidK     = 14; // насколько “круглить” место склейки (12..26)
-    const float contactEps  = 1;  // контакт в px: 0.0 = строго, 0.5..1.0 = надёжнее
+    const float liquidK     = 14;
+    const float contactEps  = 1;
     
     uint n = (U.count < 16u) ? U.count : 16u;
     if (n == 0u) return float4(0.0);
 
-    // hard min — чтобы выбрать “главный” rect для local y/highlight
     float bestDHard = 1e9;
     float4 bestRect = float4(0.0);
     float  bestIntensity = 1.0;
@@ -84,8 +79,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
         float2 h = r.zw * 0.5;
 
         float di = sdRoundRect(px - c, h, E[i].radius);
-
-        // hard min для выбора “главного” элемента (цвет/локальный y)
+        
         if (di < bestDHard) {
             bestDHard = di;
             bestRect = r;
@@ -97,8 +91,6 @@ fragment float4 glassFS(VSOut in [[stage_in]],
             bestD = di;
             first = false;
         } else {
-            // ✅ ВАЖНО: smooth-склейка только когда обе формы реально “в контакте”
-            // (обе близко к границе/внутри)
             if (bestD <= contactEps && di <= contactEps) {
                 bestD = smin_poly(bestD, di, liquidK);
             } else {
@@ -106,23 +98,20 @@ fragment float4 glassFS(VSOut in [[stage_in]],
             }
         }
     }
-
-    // AA ширина (примерно 1 пиксель)
+    
     float aa = 1.25;
 
     float fill = 1.0 - smoothstep(0.0, aa, bestD);
     if (fill <= 0.0005) return float4(0.0);
 
     float edge = 1.0 - smoothstep(0.0, aa, abs(bestD));
-
-    // локальная координата (0..1) — берём от ближайшего rect (bestRect)
+    
     float2 local = (px - bestRect.xy) / max(bestRect.zw, float2(1.0));
     float y = clamp(local.y, 0.0, 1.0);
 
     // alpha
     float a = fill * (baseAlpha + edgeAlphaBoost * pow(edge, 0.7)) * bestIntensity;
-
-    // тонкий контур (внутри+снаружи чуть-чуть)
+    
     float stroke = 1.0 - smoothstep(strokeW, strokeW + aa, abs(bestD));
     a = max(a, stroke * 0.10 * bestIntensity);
 
@@ -135,10 +124,9 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     float bottom = smoothstep(0.55, 1.0, y) * shadowStr * fill;
 
     // grain
-    float g = (hash21(px + U.time * 6.0) - 0.5) * 2.0; // -1..1
+    float g = (hash21(px + U.time * 6.0) - 0.5) * 2.0;
     float grain = g * grainStr;
-
-    // haze (молоко)
+    
     float haze = hazeStrength * fill + 0.18 * rim;
 
     float3 col = bestTint;

@@ -87,6 +87,7 @@ class LiquidGlassTabBarOverlay: UIView {
             let fingerXRaw = recognizer.location(in: self).x
             dragFingerOffsetX = initialX - fingerXRaw
 
+            renderer.stretch = 0
             updateCenterAndStretch(xPosition: initialX, velocity: velocity)
 
         case .changed:
@@ -138,12 +139,13 @@ class LiquidGlassTabBarOverlay: UIView {
         
         let badgeItems = component.items.map { $0.item.badgeValue }
         let cachedBadgeItems = cachedComponent?.items.map { $0.item.badgeValue } ?? []
+        let cachedTheme = cachedComponent?.theme
         
-        if cachedComponent != nil, cachedBadgeItems == badgeItems {
+        if cachedComponent != nil, cachedBadgeItems == badgeItems, cachedTheme == component.theme {
+            self.cachedComponent = component
             return
         }
         
-        self.cachedComponent = component
         let availableSize = CGSize(width: min(500.0, availableSize.width), height: availableSize.height)
         
         var itemSize = CGSize(width: floor((availableSize.width - innerInset * 2.0) / CGFloat(component.items.count)), height: 56.0)
@@ -153,6 +155,7 @@ class LiquidGlassTabBarOverlay: UIView {
         var contentWidth: CGFloat = innerInset
         
         let backgroundViewForTexture = GlassBackgroundView()
+        backgroundViewForTexture.backgroundNodeColor = component.theme.overallDarkAppearance ? .black : .white
         
         for index in 0 ..< component.items.count {
             let item = component.items[index]
@@ -184,6 +187,7 @@ class LiquidGlassTabBarOverlay: UIView {
         tabBarSourceSize = size
         
         transition.setFrame(view: backgroundViewForTexture, frame: CGRect(origin: CGPoint(), size: size))
+        
         backgroundViewForTexture.update(
             size: size,
             cornerRadius: size.height * 0.5,
@@ -244,10 +248,7 @@ class LiquidGlassTabBarOverlay: UIView {
     private func handleDisplayTick(displayLink: CADisplayLink) {
         guard let drawable = metalLayer?.nextDrawable(), let renderer else { return }
         
-        let dt: Float
-        if lastTimestamp == 0 { dt = 1.0 / 60.0 }
-        else { dt = Float(displayLink.timestamp - lastTimestamp) }
-        lastTimestamp = displayLink.timestamp
+        let dt: Float = 1.0 / 60.0
         
         animationProgress?(1 - renderer.appear)
         renderer.draw(to: drawable, dt: dt)

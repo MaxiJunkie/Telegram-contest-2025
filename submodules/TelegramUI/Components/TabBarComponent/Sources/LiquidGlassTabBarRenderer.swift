@@ -1,6 +1,7 @@
 import Metal
 import MetalKit
 import simd
+import GlassBackgroundComponent
 
 struct Vertex {
     var position: SIMD2<Float>
@@ -159,7 +160,7 @@ final class LiquidGlassTabBarRenderer {
     
     private var backgroundTexture: MTLTexture?
     
-    private func createTexture(from view: UIView, origin: CGPoint) {
+    private func createTexture(from view: GlassBackgroundView, origin: CGPoint) {
         let scale = UIScreen.main.scale
         let metalViewSize = CGSize(width: renderSize.width / scale, height: renderSize.height / scale)
         
@@ -170,7 +171,7 @@ final class LiquidGlassTabBarRenderer {
         let renderer = UIGraphicsImageRenderer(size: metalViewSize, format: format)
 
         let image = renderer.image { ctx in
-            ctx.cgContext.setFillColor(UIColor.white.cgColor)
+            ctx.cgContext.setFillColor(view.backgroundNodeColor.cgColor)
             ctx.cgContext.fill(CGRect(origin: .zero, size: metalViewSize))
             
             ctx.cgContext.translateBy(x: origin.x, y: origin.y)
@@ -238,7 +239,7 @@ final class LiquidGlassTabBarRenderer {
         backgroundTexture = tex
     }
     
-    func setBackgroundTexture(from view: UIView, origin: CGPoint) {
+    func setBackgroundTexture(from view: GlassBackgroundView, origin: CGPoint) {
         createTexture(from: view, origin: origin)
     }
     
@@ -254,7 +255,7 @@ final class LiquidGlassTabBarRenderer {
         case .showing:
             4
         case .dismissing:
-            2
+            3
         }
         
         let diff = appearTarget.progress - appear
@@ -293,8 +294,6 @@ final class LiquidGlassTabBarRenderer {
                 bubbleCenter.x = target
                 followVelX = 0
             }
-
-            bubbleCenter.x = min(max(bubbleCenter.x, 0), 1)
         }
         
         let renderPass = MTLRenderPassDescriptor()

@@ -204,6 +204,8 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
             upOffset += buttonSize.height + 12.0
 
             self.downButton.isHidden = false
+            self.downButton.backgroundView.isHidden = false
+            
             transition.updateAlpha(node: self.downButton, alpha: 1.0)
             
             self.downButton.backgroundView.isAnimating = true
@@ -223,6 +225,7 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
                 }
                 
                 strongSelf.downButton.isHidden = true
+                strongSelf.downButton.backgroundView.isHidden = true
             })
                                    
             self.downButton.backgroundView.isAnimating = true
