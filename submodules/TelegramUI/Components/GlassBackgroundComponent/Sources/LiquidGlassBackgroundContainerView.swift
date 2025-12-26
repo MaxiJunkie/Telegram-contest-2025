@@ -19,6 +19,10 @@ public final class LiquidGlassBackgroundContainerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    public func addRenderableViewIfNeeded(_ view: UIView) {
+        liquidGlassBackgroundView.addRenderableViewIfNeeded(view)
+    }
+    
     public override func addSubview(_ view: UIView) {
         super.addSubview(view)
         liquidGlassBackgroundView.addRenderableViewIfNeeded(view)

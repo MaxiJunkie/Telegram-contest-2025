@@ -945,6 +945,8 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
             }
             strongSelf.inputMediaNodeData = value
         })
+        
+        self.textInputPanelNode?.addRenderableViewIfNeeded(self.navigateButtons.downButton.backgroundView)
     }
     
     deinit {
@@ -1642,6 +1644,11 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
                         self.inputPanelClippingNode.view.insertSubview(
                             inputTextPanelNode.liquidGlassBackgroundView,
                             belowSubview: inputTextPanelNode.view
+                        )
+                        
+                        self.inputPanelClippingNode.view.insertSubview(
+                            navigateButtons.view,
+                            aboveSubview: inputTextPanelNode.liquidGlassBackgroundView
                         )
                     }
                 }

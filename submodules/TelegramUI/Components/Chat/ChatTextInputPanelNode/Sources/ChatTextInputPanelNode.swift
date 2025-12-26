@@ -539,6 +539,10 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
         }
     }
     
+    public func addRenderableViewIfNeeded(_ view: UIView) {
+        glassBackgroundContainer.addRenderableViewIfNeeded(view)
+    }
+    
     public func updateInputTextState(_ state: ChatTextInputState) {
         if self.ignoreInputStateUpdates {
             return
@@ -1409,7 +1413,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 x: rect.origin.x,
                 y: rect.maxY - height,
                 width: rect.width,
-                height: height
+                height: height + 100
             )
             
             glassBackgroundContainer.update(frame: frame, transition: .immediate)
@@ -1420,7 +1424,7 @@ public class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDeleg
                 x: rect.origin.x,
                 y: rect.maxY - height,
                 width: rect.width,
-                height: height
+                height: height + 100
             )
             
             glassBackgroundContainer.update(frame: frame, transition: .init(transition))

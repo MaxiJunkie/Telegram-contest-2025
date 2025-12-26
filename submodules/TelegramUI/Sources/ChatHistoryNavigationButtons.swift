@@ -4,6 +4,7 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import TelegramPresentationData
+import GlassBackgroundComponent
 import WallpaperBackgroundNode
 
 final class ChatHistoryNavigationButtons: ASDisplayNode {
@@ -108,7 +109,21 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
         self.reactionsButton.alpha = 0.0
         self.reactionsButton.isHidden = true
         
-        self.downButton = ChatHistoryNavigationButtonNode(theme: theme, backgroundNode: backgroundNode, type: isChatRotated ? .down : .up)
+        let backgroundView = GlassBackgroundView(
+            frame: .zero,
+            enableBlur: false,
+            hasForegroundView: false,
+            hasShadowView: false
+        )
+        backgroundView.id = "downButton"
+        backgroundView.shouldRenderBackgroundInMetal = true
+        
+        self.downButton = ChatHistoryNavigationButtonNode(
+            theme: theme,
+            backgroundNode: backgroundNode,
+            type: isChatRotated ? .down : .up,
+            backgroundView: backgroundView
+        )
         self.downButton.alpha = 0.0
         self.downButton.isHidden = true
         
@@ -190,15 +205,35 @@ final class ChatHistoryNavigationButtons: ASDisplayNode {
 
             self.downButton.isHidden = false
             transition.updateAlpha(node: self.downButton, alpha: 1.0)
-            transition.updateTransformScale(node: self.downButton, scale: 1.0)
+            
+            self.downButton.backgroundView.isAnimating = true
+            
+            transition.updateFrame(
+                view: self.downButton.backgroundView,
+                frame: CGRect(origin: CGPoint(x: 0, y: 0), size: self.downButton.backgroundView.bounds.size),
+                completion: { _ in
+                    self.downButton.backgroundView.isAnimating = false
+                }
+            )
+            
         } else {
             transition.updateAlpha(node: self.downButton, alpha: 0.0, completion: { [weak self] completed in
                 guard let strongSelf = self, completed else {
                     return
                 }
+                
                 strongSelf.downButton.isHidden = true
             })
-            transition.updateTransformScale(node: self.downButton, scale: 0.2)
+                                   
+            self.downButton.backgroundView.isAnimating = true
+            
+            transition.updateFrame(
+                view: self.downButton.backgroundView,
+                frame: CGRect(origin: CGPoint(x: 0, y: 52), size: self.downButton.backgroundView.bounds.size),
+                completion: { _ in
+                    self.downButton.backgroundView.isAnimating = false
+                }
+            )
         }
         
         if let up = self.directionButtonState.up {

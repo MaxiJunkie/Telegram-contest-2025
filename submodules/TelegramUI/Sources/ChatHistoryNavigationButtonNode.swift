@@ -21,7 +21,7 @@ enum ChatHistoryNavigationButtonType {
 class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
     let containerNode: ContextExtractedContentContainingNode
     let buttonNode: HighlightTrackingButtonNode
-    private let backgroundView: GlassBackgroundView
+    let backgroundView: GlassBackgroundView
     let imageView: GlassBackgroundView.ContentImageView
     private let badgeBackgroundView: GlassBackgroundView
     private let badgeTextNode: ImmediateAnimatedCountLabelNode
@@ -49,14 +49,19 @@ class ChatHistoryNavigationButtonNode: ContextControllerSourceNode {
     private var theme: PresentationTheme
     private let type: ChatHistoryNavigationButtonType
     
-    init(theme: PresentationTheme, backgroundNode: WallpaperBackgroundNode, type: ChatHistoryNavigationButtonType) {
+    init(
+        theme: PresentationTheme,
+        backgroundNode: WallpaperBackgroundNode,
+        type: ChatHistoryNavigationButtonType,
+        backgroundView: GlassBackgroundView = .init()
+    ) {
         self.theme = theme
         self.type = type
         
         self.containerNode = ContextExtractedContentContainingNode()
         self.buttonNode = HighlightTrackingButtonNode()
 
-        self.backgroundView = GlassBackgroundView()
+        self.backgroundView = backgroundView
         
         self.imageView = GlassBackgroundView.ContentImageView()
         switch type {
