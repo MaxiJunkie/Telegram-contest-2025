@@ -55,7 +55,7 @@ fragment float4 glassFS(VSOut in [[stage_in]],
     const float hazeStrength   = 0.80;
     const float rimStrength    = 0.28;
     const float highlightStr   = 0.25;
-    const float shadowStr      = 0.08;
+    const float shadowStr      = 0.0;
     const float grainStr       = 0.03;
     const float strokeW        = 1.5;
 
